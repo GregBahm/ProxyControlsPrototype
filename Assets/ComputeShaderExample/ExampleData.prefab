@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5067919912319352578
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5067919912319352576}
+  - component: {fileID: 5067919912319352577}
+  m_Layer: 0
+  m_Name: WindCube
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5067919912319352576
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5067919912319352578}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.5, y: 0, z: -0.5}
+  m_LocalScale: {x: 1, y: 0.5, z: 1}
+  m_Children: []
+  m_Father: {fileID: 5067919912583906594}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5067919912319352577
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5067919912319352578}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3285eb8dbd9078443987caa28e3e39ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TextureGenerator:
+    Textures:
+    - {fileID: 2800000, guid: 4cf70d3c1b1128246920ce4b24ee9d27, type: 3}
+    - {fileID: 2800000, guid: e98e9ec8f31e27746b220d4cf4809ef0, type: 3}
+    - {fileID: 2800000, guid: b4708ce403557564eb2c3fb9d8011b4d, type: 3}
+    - {fileID: 2800000, guid: 4c6eca80c3040f74f9778214c5d21a79, type: 3}
+    - {fileID: 2800000, guid: 5eee57ca4b61f654a96e9365fbc89d10, type: 3}
+    - {fileID: 2800000, guid: 6dc053970e29b414091b79540b94d8bf, type: 3}
+    - {fileID: 2800000, guid: ce90e8e11e53e834b8061cbb6af2b42f, type: 3}
+    - {fileID: 2800000, guid: 5f883e21fc8d05c4ba6ec71484ca1072, type: 3}
+    - {fileID: 2800000, guid: 05267e6e83ff0404f8a81ac7f60b66b8, type: 3}
+    - {fileID: 2800000, guid: 841733ff5bf26294d9c17094394af535, type: 3}
+    - {fileID: 2800000, guid: 63a9e44afa8ee9144a4c2b6872164745, type: 3}
+    - {fileID: 2800000, guid: c1f84c357ab1f8c42a561cda0eb4c01b, type: 3}
+    - {fileID: 2800000, guid: 2804ff0bea18fd744908f15ec9e9fcb3, type: 3}
+    - {fileID: 2800000, guid: 8f3135bae9347db4b93d3f1d26441209, type: 3}
+    - {fileID: 2800000, guid: 1a17cfa915ceec843aefde4e358b88ce, type: 3}
+    - {fileID: 2800000, guid: 03ad94c4b0f43d24da34025d41ea984f, type: 3}
+    Clamp: 1
+  ParticleUpdater: {fileID: 7200000, guid: f709e8c8ed06c3a4ca46257eccd46aef, type: 3}
+  ParticleMaterial: {fileID: 2100000, guid: 387541551f2108b45a3c43e8fe676c4d, type: 2}
+  ParticleCount: 500000
+  ParticleSize: 0.0075
+  VelocityScale: 0.86
+  ParticleLifetime: 200
+  ParticleSpeed: 0.5
+--- !u!1 &5067919912583906604
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5067919912583906594}
+  m_Layer: 0
+  m_Name: ExampleData
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5067919912583906594
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5067919912583906604}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 5067919912319352576}
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
