@@ -57,7 +57,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - _BumpScale: 1
-    - _CardSize: 0.004
+    - _CardSize: 0.001
     - _ColorBlowOut: 5.87
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
