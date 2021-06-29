@@ -20,7 +20,7 @@ public class ComputeShaderTest : MonoBehaviour
     private int updateParticlesKernel;
 
     private ComputeBuffer particlesBuffer;
-    private const int particleStride = sizeof(float) * 3 //Original Position 
+    private const int particleStride = sizeof(float) * 3 //Source Velocity 
         + sizeof(float) * 3 // Current Position 
         + sizeof(float); //Time
     private const int particlePositionsStride = sizeof(float) * 3 //Position 
@@ -31,19 +31,14 @@ public class ComputeShaderTest : MonoBehaviour
 
     struct WindData
     {
-        public Vector3 originalPosition;
+        public Vector3 sourceVelocity;
         public Vector3 currentPosition;
         public float time;
     };
 
-    Vector3 GetRandomPointInCube()
+    private Vector3 GetRandomVelocity()
     {
-        return new Vector3
-            (
-                UnityEngine.Random.value,
-                UnityEngine.Random.value,
-                UnityEngine.Random.value
-            );
+        return UnityEngine.Random.onUnitSphere;
     }
 
     void Start()
@@ -56,10 +51,11 @@ public class ComputeShaderTest : MonoBehaviour
         particlesBuffer = new ComputeBuffer(ParticleCount, particleStride);
         particlePositionsBuffer = new ComputeBuffer(ParticleCount, particlePositionsStride);
 
+        Vector3 center = new Vector3(.5f, .5f, .5f);
         for (int i = 0; i < ParticleCount; i++)
         {
-            data[i].originalPosition = GetRandomPointInCube();
-            data[i].currentPosition = data[i].originalPosition;
+            data[i].sourceVelocity = GetRandomVelocity();
+            data[i].currentPosition = center;
             data[i].time = UnityEngine.Random.value * ParticleLifetime;
         }
 
@@ -84,6 +80,7 @@ public class ComputeShaderTest : MonoBehaviour
     void Update()
     {
         // Setting these every frame so that I can noodle with the shader without having to restart the project
+        // One the settings are correct this only needs to be set once
         ParticleUpdater.SetBuffer(updateParticlesKernel, "particles", particlesBuffer);
         ParticleUpdater.SetBuffer(updateParticlesKernel, "particlePositions", particlePositionsBuffer);
      

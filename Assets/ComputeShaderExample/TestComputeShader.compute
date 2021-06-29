@@ -2,7 +2,7 @@
 
 struct WindData
 {
-	float3 originalPosition;
+	float3 sourceVelocity;
 	float3 currentPosition;
 	float time;
 };
@@ -28,17 +28,23 @@ void UpdateParticles(uint3 id : SV_DispatchThreadID)
 
 	particles[id.x].time = time % particleLifetime;
 
-	float3 uvs = lerp(particles[id.x].currentPosition, particles[id.x].originalPosition, positionReset);
-	float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs, 0);
-	mapSample = mapSample * 2 - 1;
-	mapSample = float3(0, mapSample.x, mapSample.y); 
+	float3 uvs = lerp(particles[id.x].currentPosition, float3(.5, .5, .5), positionReset);
 
-	float3 newPos = (uvs + mapSample * deltaTime * particleSpeed) % 1;
+	float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs * .5, 0);
+	mapSample = mapSample * 2 - 1;
+	//mapSample = float3(0, mapSample.x, mapSample.y); 
+
+	float3 currents = mapSample * deltaTime * particleSpeed;
+	float3 diffusion = particles[id.x].sourceVelocity * deltaTime * particleSpeed;
+	float progression = time / particleLifetime;
+	float3 offset = lerp(diffusion, currents, progression);
+	float3 newPos = (uvs + offset);
 
 	particles[id.x].currentPosition = newPos;
 	
-	float oldVelocity = particlePositions[id.x].w;
-	float newVelocity = length(mapSample);
-	newVelocity = lerp(oldVelocity, newVelocity, .1);
-	particlePositions[id.x] = float4(particles[id.x].currentPosition, newVelocity);
+	//float oldVelocity = particlePositions[id.x].w;
+	//float newVelocity = length(mapSample);
+	//newVelocity = lerp(oldVelocity, newVelocity, .1);
+	float w = time / particleLifetime;
+	particlePositions[id.x] = float4(particles[id.x].currentPosition, w);
 }
