@@ -1,8 +1,7 @@
 ﻿#pragma kernel UpdateParticles
 
-struct WindData
+struct BaitData
 {
-	float3 sourceVelocity;
 	float3 currentPosition;
 	float time;
 };
@@ -11,13 +10,17 @@ float particleLifetime;
 float particleSpeed;
 float deltaTime;
 
+float _CurrentFactor;
+
 Texture3D MapTexture;
 
 SamplerState samplerMapTexture;
 
-RWStructuredBuffer<WindData> particles;
+RWStructuredBuffer<BaitData> particles;
+RWStructuredBuffer<float3> baseVelocities;
 RWStructuredBuffer<float4> particlePositions; //xyz = position, w = speed
 
+float3 _StartingPoint;
 
 [numthreads(128,1,1)]
 void UpdateParticles(uint3 id : SV_DispatchThreadID)
@@ -28,16 +31,18 @@ void UpdateParticles(uint3 id : SV_DispatchThreadID)
 
 	particles[id.x].time = time % particleLifetime;
 
-	float3 uvs = lerp(particles[id.x].currentPosition, float3(.5, .5, .5), positionReset);
+	float3 uvs = lerp(particles[id.x].currentPosition, _StartingPoint, positionReset);
 
-	float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs * .5, 0);
+	float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs * .2, 0);
 	mapSample = mapSample * 2 - 1;
 	//mapSample = float3(0, mapSample.x, mapSample.y); 
 
 	float3 currents = mapSample * deltaTime * particleSpeed;
-	float3 diffusion = particles[id.x].sourceVelocity * deltaTime * particleSpeed;
+	float3 diffusion = baseVelocities[id.x] * deltaTime * particleSpeed;
 	float progression = time / particleLifetime;
+	progression = pow(progression, _CurrentFactor);
 	float3 offset = lerp(diffusion, currents, progression);
+	offset *= 1 + progression;
 	float3 newPos = (uvs + offset);
 
 	particles[id.x].currentPosition = newPos;

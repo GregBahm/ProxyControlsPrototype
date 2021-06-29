@@ -1,4 +1,4 @@
-﻿Shader "Unlit/WindParticleShader"
+﻿Shader "Unlit/BaitParticleShader"
 {
   Properties
   {
@@ -18,6 +18,7 @@
       #include "UnityCG.cginc"
 
       StructuredBuffer<float4> particles;
+      StructuredBuffer<float3> baseVelocities;
       StructuredBuffer<float3> quadPoints;
 
       struct input
@@ -32,7 +33,8 @@
         float4 pos : SV_POSITION;
         float3 basePos: TEXCOORD0;
         float3 quadPoint : TEXCOORD1;
-        float col : TEXCOORD2;
+        float lifespan : TEXCOORD2;
+        float3 col : TEXCOORD3;
         UNITY_VERTEX_OUTPUT_STEREO
       };
 
@@ -50,25 +52,27 @@
         UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
         o.basePos = particles[i.inst].yxz;
-        float velocity = particles[i.inst].w;
-        float3 newPos = particles[i.inst].yxz;
+        float lifespan = particles[i.inst].w;
+        float3 newPos = particles[i.inst];
         float4 worldPos = mul(masterTransform, float4(newPos, 1));
 
         o.quadPoint = quadPoints[i.id];
-        float3 finalQuadPoint = o.quadPoint * _CardSize * pow(velocity, _VelocityScale);
+        float lifetimeCardSize = pow(1 - lifespan, .1);
+        float3 finalQuadPoint = o.quadPoint * _CardSize * lifetimeCardSize;
         o.pos = mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, worldPos) + float4(finalQuadPoint, 0));
-        o.col = velocity;
+        o.lifespan = lifespan;
+        o.col = baseVelocities[i.inst];
         return o;
       }
 
       fixed4 frag(v2f i) : COLOR
       {
-      float lut = pow(i.col, 2);
-        fixed4 col = tex2D(_MainTex, lut);
-        //col += .5;
-        //col *= float4(0.5, 1, 2, 1);
-        return col;
-        return float4(i.basePos, 1);
+        float3 col = i.col * .5 + .5;
+
+        float lutUv = pow(i.lifespan, 2);
+        fixed4 lut = tex2D(_MainTex, lutUv);
+        lut = lerp(lut, float4(col, 1), .2);
+        return lut;
       }
       ENDCG
     }
