@@ -1,0 +1,15 @@
+
+RWStructuredBuffer<float3> _BaseVelocities;
+RWStructuredBuffer<float3> _ParticlePositionsBuffer;
+
+float _Speed;
+
+[numthreads(128, 1, 1)]
+void UpdateMeshPoints(uint3 id : SV_DispatchThreadID)
+{
+	float3 currentPosition = particles[id.x];
+
+	float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs * .2, 0);
+	float3 newPosition = currentPosition + mapSample * _Speed;
+	particlePositions[id.x] = newPosition;
+}

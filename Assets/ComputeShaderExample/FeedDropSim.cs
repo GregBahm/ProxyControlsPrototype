@@ -79,6 +79,18 @@ public class FeedDropSim : MonoBehaviour
         ParticleMaterial.SetTexture("MapTexture", assembledTexture);
     }
 
+    internal void RestartSimAt(Vector3 position)
+    {
+        BaitData[] data = new BaitData[ParticleCount];
+        StartingPoint.position = position;
+        for (int i = 0; i < ParticleCount; i++)
+        {
+            data[i].currentPosition = StartingPoint.localPosition;
+            data[i].time = UnityEngine.Random.value * ParticleLifetime;
+        }
+        particlesBuffer.SetData(data);
+    }
+
     void Update()
     {
         if(UpdateComputation)

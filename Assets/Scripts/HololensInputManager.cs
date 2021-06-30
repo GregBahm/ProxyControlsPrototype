@@ -5,19 +5,24 @@ using UnityEngine;
 
 public class HololensInputManager : MonoBehaviour
 {
+    public FeedDropSim FeedDrop;
 
     public float Deadzone = .1f;
 
     private Transform translationHelper;
     private Transform rotationHelper;
 
-    public PinchDetector PinchDetector;
+    public PinchDetector LeftPinchDetector;
+    public PinchDetector RightPinchDetector;
 
     public Transform TargetTransform;
 
     public ProxyButton MoveButton;
     public ProxyButton RotateButton;
     public ProxyButton ScaleButton;
+    public ProxyButton StartStopButton;
+
+    public Transform StartingPointIndicator;
 
     public enum LeftHandToolMode
     {
@@ -65,6 +70,17 @@ public class HololensInputManager : MonoBehaviour
     void Update()
     {
         UpdatePinchAndDrag();
+        FeedDrop.UpdateComputation = StartStopButton.Toggled;
+        UpdateResetter();
+    }
+
+    private void UpdateResetter()
+    {
+        StartingPointIndicator.position = RightPinchDetector.PinchPoint.position;
+        if(RightPinchDetector.PinchBeginning)
+        {
+            FeedDrop.RestartSimAt(StartingPointIndicator.position);
+        }
     }
 
     private void UpdatePinchAndDrag()
@@ -89,13 +105,13 @@ public class HololensInputManager : MonoBehaviour
     private bool wasResizing;
     private void UpdateResizing()
     {
-        if (!wasResizing && PinchDetector.PinchBeginning)
+        if (!wasResizing && LeftPinchDetector.PinchBeginning)
         {
-            translationHelper.position = PinchDetector.PinchPoint.position;
+            translationHelper.position = LeftPinchDetector.PinchPoint.position;
             startDist = (TargetTransform.position - translationHelper.position).magnitude;
             startScale = TargetTransform.localScale.x;
         }
-        if(PinchDetector.Pinching)
+        if(LeftPinchDetector.Pinching)
         {
             translationHelper.position = GetDeadzoneMovement();
             float newDist = (TargetTransform.position - translationHelper.position).magnitude;
@@ -109,25 +125,25 @@ public class HololensInputManager : MonoBehaviour
     private bool wasRotating;
     private void UpdateRotating()
     {
-        if(!wasRotating && PinchDetector.PinchBeginning)
+        if(!wasRotating && LeftPinchDetector.PinchBeginning)
         {
-            translationHelper.position = PinchDetector.PinchPoint.position;
+            translationHelper.position = LeftPinchDetector.PinchPoint.position;
             rotationHelper.position = TargetTransform.position;
             rotationUp = TargetTransform.up;
             rotationHelper.LookAt(translationHelper, rotationUp);
             TargetTransform.SetParent(rotationHelper, true);
         }
-        if(PinchDetector.Pinching)
+        if(LeftPinchDetector.Pinching)
         {
             translationHelper.position = GetDeadzoneMovement();
 
             rotationHelper.LookAt(translationHelper, TargetTransform.up);
         }
-        if(wasRotating && !PinchDetector.Pinching)
+        if(wasRotating && !LeftPinchDetector.Pinching)
         {
             TargetTransform.SetParent(null, true);
         }
-        wasRotating = PinchDetector.Pinching;
+        wasRotating = LeftPinchDetector.Pinching;
     }
 
     private Vector3 transformHelperStartPos;
@@ -135,23 +151,23 @@ public class HololensInputManager : MonoBehaviour
     private bool wasDragging;
     private void UpdateDragging()
     {
-        if(!wasDragging && PinchDetector.PinchBeginning)
+        if(!wasDragging && LeftPinchDetector.PinchBeginning)
         {
-            translationHelper.position = PinchDetector.PinchPoint.position;
+            translationHelper.position = LeftPinchDetector.PinchPoint.position;
             transformHelperStartPos = translationHelper.position;
             mainStageStartPos = TargetTransform.position;
         }
-        if(PinchDetector.Pinching)
+        if(LeftPinchDetector.Pinching)
         {
             translationHelper.position = GetDeadzoneMovement();
             TargetTransform.position = mainStageStartPos + (translationHelper.position - transformHelperStartPos);
         }
-        wasDragging = PinchDetector.Pinching;
+        wasDragging = LeftPinchDetector.Pinching;
     }
     
     private Vector3 GetDeadzoneMovement()
     {
-        Vector3 toTarget = PinchDetector.PinchPoint.position - translationHelper.position;
+        Vector3 toTarget = LeftPinchDetector.PinchPoint.position - translationHelper.position;
         float distToTarget = toTarget.magnitude;
         float deadDist = Mathf.Max(0, distToTarget - Deadzone);
         return translationHelper.position + toTarget.normalized * deadDist;
