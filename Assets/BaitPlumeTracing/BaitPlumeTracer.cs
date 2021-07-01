@@ -9,7 +9,6 @@ public class BaitPlumeTracer : MonoBehaviour
     public Material PlumeStrandMaterial;
     public BoxCollider PlumeBoundsSource;
 
-    public float Intensity;
     public float StrandThickness;
 
     public ComputeShader BaitPlumeCompute;
@@ -17,47 +16,55 @@ public class BaitPlumeTracer : MonoBehaviour
 
     [Range(0, 1)]
     public float Timeline;
+    public float FeedDropGravity;
+    public float BaseIntensity;
+    public float StrandIntensity;
+    public float DispersionBaseIntensity;
+    public float DispersionDecay;
 
     public int RootPointsCount;
     public int StrandsCount;
+    public int Dispersions;
 
     private int totalStrands;
 
-    private int baitPlumeKernel;
+    private int plumeStrandsKernel;
+    private int basePositionsKernel;
     private ComputeBuffer argsBuffer;
 
     private const int GROUP_SIZE = 128;
     private const int ROOT_POINTS_STRIDE = sizeof(float) * 3;
     private const int POINTS_PER_STRAND = 16;
     private const int CHAIN_BUFFER_STRIDE = sizeof(float) * 3;
+    private const int DISPERSION_BUFFER_STRIDE = sizeof(float) * 3;
 
+    private ComputeBuffer dispersionBuffer;
     private ComputeBuffer basePointsBuffer;
     private ComputeBuffer plumeStrandsBuffer;
+    Texture3D assembledTexture;
 
     private void Start()
     {
-        baitPlumeKernel = BaitPlumeCompute.FindKernel("CalculateBaitPlumes");
+        basePositionsKernel = BaitPlumeCompute.FindKernel("CalculateBasePositions");
+        plumeStrandsKernel = BaitPlumeCompute.FindKernel("CalculatePlumesStrands");
         totalStrands = RootPointsCount * StrandsCount;
         argsBuffer = GetArgsBuffer();
-        basePointsBuffer = GetBasePointsBuffer();
+        basePointsBuffer = new ComputeBuffer(RootPointsCount, ROOT_POINTS_STRIDE);
         plumeStrandsBuffer = new ComputeBuffer(totalStrands * POINTS_PER_STRAND, CHAIN_BUFFER_STRIDE);
+        dispersionBuffer = GetDispersionsBuffer();
 
-        Texture3D assembledTexture = TextureGenerator.GetAssembledTexture();
-        BaitPlumeCompute.SetTexture(baitPlumeKernel, "MapTexture", assembledTexture);
+        assembledTexture = TextureGenerator.GetAssembledTexture();
     }
 
-    private ComputeBuffer GetBasePointsBuffer()
+    private ComputeBuffer GetDispersionsBuffer()
     {
-        ComputeBuffer ret = new ComputeBuffer(RootPointsCount, ROOT_POINTS_STRIDE);
-        Vector3[] dummyData = new Vector3[RootPointsCount];
-        Vector3 start = new Vector3(.5f, 1, .5f);
-        Vector3 end = new Vector3(.5f, 0, .5f);
-        for (int i = 0; i < RootPointsCount; i++)
+        ComputeBuffer ret = new ComputeBuffer(Dispersions, DISPERSION_BUFFER_STRIDE);
+        Vector3[] data = new Vector3[Dispersions];
+        for (int i = 0; i < Dispersions; i++)
         {
-            float param = (float)i / RootPointsCount;
-            dummyData[i] = Vector3.Lerp(start, end, param);
+            data[i] = UnityEngine.Random.onUnitSphere;
         }
-        ret.SetData(dummyData);
+        ret.SetData(data);
         return ret;
     }
 
@@ -91,12 +98,28 @@ public class BaitPlumeTracer : MonoBehaviour
 
     private void DispatchCompute()
     {
-        BaitPlumeCompute.SetBuffer(baitPlumeKernel, "_BasePositions", basePointsBuffer);
-        BaitPlumeCompute.SetBuffer(baitPlumeKernel, "_PlumeStrands", plumeStrandsBuffer);
-        BaitPlumeCompute.SetFloat("_Intensity", Intensity);
+        BaitPlumeCompute.SetFloat("_DispersionsCount", Dispersions);
+        BaitPlumeCompute.SetFloat("_StrandIntensity", StrandIntensity);
+        BaitPlumeCompute.SetFloat("_BaseIntensity", BaseIntensity);
+        BaitPlumeCompute.SetFloat("_FeedDropGravity", FeedDropGravity);
+        BaitPlumeCompute.SetFloat("_DispersionDecay", DispersionBaseIntensity);
+        BaitPlumeCompute.SetFloat("_DispersionBaseIntensity", DispersionBaseIntensity);
+        BaitPlumeCompute.SetFloat("_Time", Time.realtimeSinceStartup);
 
-        int numberofGroups = Mathf.CeilToInt((float)totalStrands / GROUP_SIZE);
-        BaitPlumeCompute.Dispatch(baitPlumeKernel, numberofGroups, 1, 1);
+        BaitPlumeCompute.SetBuffer(plumeStrandsKernel, "_BasePositions", basePointsBuffer);
+        BaitPlumeCompute.SetBuffer(plumeStrandsKernel, "_PlumeStrands", plumeStrandsBuffer);
+        BaitPlumeCompute.SetBuffer(plumeStrandsKernel, "_Dispersions", dispersionBuffer);
+        BaitPlumeCompute.SetTexture(plumeStrandsKernel, "MapTexture", assembledTexture);
+
+        int strandGroups = Mathf.CeilToInt((float)totalStrands / GROUP_SIZE);
+        BaitPlumeCompute.Dispatch(plumeStrandsKernel, strandGroups, 1, 1);
+
+        BaitPlumeCompute.SetBuffer(basePositionsKernel, "_BasePositions", basePointsBuffer);
+        BaitPlumeCompute.SetBuffer(basePositionsKernel, "_PlumeStrands", plumeStrandsBuffer);
+        BaitPlumeCompute.SetTexture(basePositionsKernel, "MapTexture", assembledTexture);
+
+        int basePointGroups = Mathf.CeilToInt((float)RootPointsCount / GROUP_SIZE);
+        BaitPlumeCompute.Dispatch(basePositionsKernel, basePointGroups, 1, 1);
     }
 
     private void OnDestroy()
@@ -104,5 +127,6 @@ public class BaitPlumeTracer : MonoBehaviour
         argsBuffer.Dispose();
         basePointsBuffer.Dispose();
         plumeStrandsBuffer.Dispose();
+        dispersionBuffer.Dispose();
     }
 }

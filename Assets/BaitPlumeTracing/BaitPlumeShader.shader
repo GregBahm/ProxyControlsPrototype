@@ -50,8 +50,7 @@ Shader "Unlit/BaitPlumeShader"
             float3 GetTimeFactor(float param, uint instanceID)
             {
                 float strandsParam = (float)instanceID / _TotalStrands;
-                return strandsParam - _Timeline;
-                return (param + strandsParam) - _Timeline * 2;
+                return strandsParam * .5 + param * .5;
             }
 
             float3 GetStrokeTangent(float3 basePoint, float3 strokeBeginning, float3 strokeEnd)
@@ -90,9 +89,11 @@ Shader "Unlit/BaitPlumeShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                //clip(i.timeFactor - (1 - _Timeline));
+                clip(_Timeline - i.timeFactor);
                 float3 norm = i.normal * .5 + .5;
-                norm = lerp(norm, i.testParam.xxx, .5);
+                float3 lerpColor = lerp(float3(3, 1, 1), float3(.1, .3, 1), pow(i.testParam, .5));
+                norm = lerp(norm, lerpColor, .5);
+                norm = pow(norm, 3);
                 return float4(norm, 1);
             }
             ENDCG

@@ -912,8 +912,7 @@ MonoBehaviour:
   StrandMesh: {fileID: 4423823845013724965, guid: 8536d844a02f2e340b05e54f393c032a, type: 3}
   PlumeStrandMaterial: {fileID: 2100000, guid: a020bbf461ff4ab48a880710d8ee16f3, type: 2}
   PlumeBoundsSource: {fileID: 1748030952}
-  Intensity: 0.1
-  StrandThickness: 0.01
+  StrandThickness: 0.005
   BaitPlumeCompute: {fileID: 7200000, guid: afa74882b39f27249b2e83f9c0dc9096, type: 3}
   TextureGenerator:
     Textures:
@@ -934,9 +933,15 @@ MonoBehaviour:
     - {fileID: 2800000, guid: 1a17cfa915ceec843aefde4e358b88ce, type: 3}
     - {fileID: 2800000, guid: 03ad94c4b0f43d24da34025d41ea984f, type: 3}
     Clamp: 0
-  Timeline: 0
-  RootPointsCount: 256
+  Timeline: 1
+  FeedDropGravity: 0.0001
+  BaseIntensity: 0.0005
+  StrandIntensity: 0.1
+  DispersionBaseIntensity: 0.01
+  DispersionDecay: 1
+  RootPointsCount: 5000
   StrandsCount: 1
+  Dispersions: 256
 --- !u!1 &1333495900
 GameObject:
   m_ObjectHideFlags: 0
