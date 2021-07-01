@@ -1,0 +1,30 @@
+#pragma kernel CalculateBaitPlumes
+
+#define POINTS_PER_STRAND 16
+
+float _Intensity;
+
+Texture3D MapTexture;
+SamplerState samplerMapTexture;
+
+StructuredBuffer<float3> _BasePositions;
+RWStructuredBuffer<float3> _PlumeStrands;
+
+float3 ApplyCurrents(float3 currentPos)
+{
+  float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, currentPos, 0);
+  mapSample = mapSample * 2 - 1;
+  mapSample *= _Intensity;
+  return currentPos + mapSample;
+}
+
+[numthreads(128, 1, 1)]
+void CalculateBaitPlumes(uint3 id : SV_DispatchThreadID)
+{
+  float3 pos = _BasePositions[id.x];
+  for (uint i = 0; i < POINTS_PER_STRAND; i++)
+  {
+    _PlumeStrands[id.x * POINTS_PER_STRAND + i] = pos;
+    pos = ApplyCurrents(pos);
+  }
+}
