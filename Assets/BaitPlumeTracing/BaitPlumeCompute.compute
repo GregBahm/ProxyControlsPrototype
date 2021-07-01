@@ -10,6 +10,7 @@ float _DispersionDecay;
 float _FeedDropGravity;
 float _Time;
 float _DispersionsCount;
+float _StrandsPerBasePoint;
 
 Texture3D MapTexture;
 SamplerState samplerMapTexture;
@@ -32,10 +33,22 @@ float3 ApplyCurrents(float3 currentPos, float intensity, float3 dispersion)
   return currentPos + positionChange;
 }
 
+float3 GetBasePosition(uint id)
+{
+  float basePositionIndex = (float)id / _StrandsPerBasePoint;
+  //return _BasePositions[basePositionIndex];
+  float baseCeil = ceil(basePositionIndex);
+  float baseFloor = floor(basePositionIndex);
+  float3 ceilPos = _BasePositions[baseCeil];
+  float3 floorPos = _BasePositions[baseFloor];
+  float param = basePositionIndex % 1;
+  return lerp(floorPos, ceilPos, param);
+}
+
 [numthreads(128, 1, 1)]
 void CalculatePlumesStrands(uint3 id : SV_DispatchThreadID)
 {
-  float3 pos = _BasePositions[id.x];
+  float3 pos = GetBasePosition(id.x);
   float3 dispersion = _Dispersions[id.x % _DispersionsCount];
   dispersion *= _DispersionBaseIntensity;
   for (uint i = 0; i < POINTS_PER_STRAND; i++)

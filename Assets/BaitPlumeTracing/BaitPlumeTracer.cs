@@ -23,7 +23,7 @@ public class BaitPlumeTracer : MonoBehaviour
     public float DispersionDecay;
 
     public int RootPointsCount;
-    public int StrandsCount;
+    public int StrandsPerBasePoint;
     public int Dispersions;
 
     private int totalStrands;
@@ -47,7 +47,7 @@ public class BaitPlumeTracer : MonoBehaviour
     {
         basePositionsKernel = BaitPlumeCompute.FindKernel("CalculateBasePositions");
         plumeStrandsKernel = BaitPlumeCompute.FindKernel("CalculatePlumesStrands");
-        totalStrands = RootPointsCount * StrandsCount;
+        totalStrands = RootPointsCount * StrandsPerBasePoint;
         argsBuffer = GetArgsBuffer();
         basePointsBuffer = new ComputeBuffer(RootPointsCount, ROOT_POINTS_STRIDE);
         plumeStrandsBuffer = new ComputeBuffer(totalStrands * POINTS_PER_STRAND, CHAIN_BUFFER_STRIDE);
@@ -99,6 +99,7 @@ public class BaitPlumeTracer : MonoBehaviour
     private void DispatchCompute()
     {
         BaitPlumeCompute.SetFloat("_DispersionsCount", Dispersions);
+        BaitPlumeCompute.SetFloat("_StrandsPerBasePoint", StrandsPerBasePoint);
         BaitPlumeCompute.SetFloat("_StrandIntensity", StrandIntensity);
         BaitPlumeCompute.SetFloat("_BaseIntensity", BaseIntensity);
         BaitPlumeCompute.SetFloat("_FeedDropGravity", FeedDropGravity);
