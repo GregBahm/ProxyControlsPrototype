@@ -23,7 +23,7 @@ float3 ApplyCurrents(float3 currentPos, float intensity, float3 dispersion)
 {
   float3 uvs = currentPos * .1;
 
-  uvs += float3(_Time * .1, _Time * .05, _Time * .02);
+  //uvs += float3(_Time * .1, _Time * .05, _Time * .02);
 
   float2 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs, 0).xy;
   mapSample = mapSample * 2 - 1;
@@ -35,7 +35,8 @@ float3 ApplyCurrents(float3 currentPos, float intensity, float3 dispersion)
 
 float3 GetBasePosition(uint id)
 {
-  float basePositionIndex = (float)id / _StrandsPerBasePoint;
+
+  float basePositionIndex = (float)id / (_StrandsPerBasePoint - 2); 
   //return _BasePositions[basePositionIndex];
   float baseCeil = ceil(basePositionIndex);
   float baseFloor = floor(basePositionIndex);

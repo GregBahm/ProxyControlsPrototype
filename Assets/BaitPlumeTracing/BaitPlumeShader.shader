@@ -10,6 +10,8 @@ Shader "Unlit/BaitPlumeShader"
 
       Pass
       {
+          Cull Off
+
           CGPROGRAM
 
           #pragma vertex vert
@@ -53,11 +55,11 @@ Shader "Unlit/BaitPlumeShader"
                 return strandsParam * .5 + param * .5;
             }
 
-            float3 GetStrokeTangent(float3 basePoint, float3 strokeBeginning, float3 strokeEnd)
+            float3 GetStrokeTangent(float3 basePoint, float3 strokeBeginning, float3 strokeEnd, float3 param)
             {
                 basePoint = float3(basePoint.x, basePoint.y, 0);
-                return basePoint * _StrandThickness;
                 float3 newNormal = normalize(strokeEnd - strokeBeginning);
+                float thickness = (1 - param) * _StrandThickness;
                 return ProjectOnPlane(basePoint, newNormal) * _StrandThickness;
             }
 
@@ -75,7 +77,7 @@ Shader "Unlit/BaitPlumeShader"
 
                 float3 strokeCenter = lerp(beginning, end, modParam);
                 
-                float3 strokeTangent = GetStrokeTangent(v.vertex, beginning, end);
+                float3 strokeTangent = GetStrokeTangent(v.vertex, beginning, end, param);
 
                 v.vertex = float4(strokeCenter + strokeTangent, 1);
 
@@ -91,9 +93,9 @@ Shader "Unlit/BaitPlumeShader"
             {
                 clip(_Timeline - i.timeFactor);
                 float3 norm = i.normal * .5 + .5;
-                float3 lerpColor = lerp(float3(3, 1, 1), float3(.1, .3, 1), pow(i.testParam, .5));
+                float3 lerpColor = lerp(float3(3, 1, 1) * .5, float3(.1, .3, .5), pow(i.testParam, .5));
                 norm = lerp(norm, lerpColor, .5);
-                norm = pow(norm, 3);
+                norm = pow(norm, 2);
                 return float4(norm, 1);
             }
             ENDCG
