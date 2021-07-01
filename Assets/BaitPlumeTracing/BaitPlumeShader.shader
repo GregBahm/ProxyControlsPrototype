@@ -2,6 +2,7 @@ Shader "Unlit/BaitPlumeShader"
 {
   Properties
   {
+        _Lut("Lut", 2D) = "white" {}
   }
     SubShader
   {
@@ -35,32 +36,56 @@ Shader "Unlit/BaitPlumeShader"
             {
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
-                float testParam : TEXCOORD1;
-                float timeFactor : TEXCOORD2;
+                float thickness : TEXCOORD1;
                 float3 normal : NORMAL;
             };
 
             float _Timeline;
             float _TotalStrands;
             float _StrandThickness;
+            sampler2D _Lut;
 
-            inline float3 ProjectOnPlane(float3 vec, float3 normal)
+
+            float4x4 GetLookMatrix(float3 forward)
             {
-              return vec - normal * dot(vec, normal);
+              float3 xAxis = cross(forward, float3(0, 1, 0));
+              float3 yAxis = cross(forward, xAxis);
+
+              return float4x4(
+                xAxis.x, yAxis.x, forward.x, 0,
+                xAxis.y, yAxis.y, forward.y, 0,
+                xAxis.z, yAxis.z, forward.z, 0,
+                0, 0, 0, 1
+                );
             }
 
-            float3 GetTimeFactor(float param, uint instanceID)
+            float4 GetRenormalized(float3 vertex, float3 newForward)
             {
-                float strandsParam = (float)instanceID / _TotalStrands;
-                return strandsParam * .5 + param * .5;
+              float4x4 lookMatrix = GetLookMatrix(newForward);
+              return mul(lookMatrix, vertex);
             }
 
-            float3 GetStrokeTangent(float3 basePoint, float3 strokeBeginning, float3 strokeEnd, float3 param)
+            float GetThickness(float param, uint instanceID)
+            {
+              float strandsParam = (float)instanceID / _TotalStrands;
+
+              float time = _Timeline * 2 - 1;
+
+              float strandsAlpha = 1 - saturate(abs(strandsParam - .5 - time) * 2);
+
+              float mainAlpha = 1 - saturate(abs(param - .5 - time) * 2);
+              float endAlpha = 1 - saturate(abs(param - .5) * 2);
+              mainAlpha *= endAlpha;
+              mainAlpha *= strandsAlpha;
+              return mainAlpha;
+            }
+
+            float3 GetStrokeTangent(float3 basePoint, float3 strokeBeginning, float3 strokeEnd, float param)
             {
                 basePoint = float3(basePoint.x, basePoint.y, 0);
-                float3 newNormal = normalize(strokeEnd - strokeBeginning);
-                float thickness = (1 - param) * _StrandThickness;
-                return ProjectOnPlane(basePoint, newNormal) * _StrandThickness;
+                float3 newForward = normalize(strokeEnd - strokeBeginning);
+
+                return GetRenormalized(basePoint, newForward);
             }
 
             v2f vert(vertexInput v, uint instanceID : SV_InstanceID)
@@ -70,33 +95,40 @@ Shader "Unlit/BaitPlumeShader"
                 float param = v.vertex.z;
                 float scaledParam = param * (POINTS_PER_STRAND - 1);
                 int flooredParam = floor(scaledParam);
-                int ceilParam = ceil(scaledParam);
+                int ceilParam = flooredParam + 1;
                 float3 beginning = _PlumeStrands[startIndex + flooredParam];
                 float3 end = _PlumeStrands[startIndex + ceilParam];
                 float modParam = scaledParam % 1;
+
+                float thickness = GetThickness(param, instanceID);
 
                 float3 strokeCenter = lerp(beginning, end, modParam);
                 
                 float3 strokeTangent = GetStrokeTangent(v.vertex, beginning, end, param);
 
-                v.vertex = float4(strokeCenter + strokeTangent, 1);
+                float3 newPos = strokeCenter + strokeTangent * thickness * _StrandThickness;
+                v.vertex = float4(newPos, 1);
 
                 v2f o; 
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.testParam = param;
-                o.timeFactor = GetTimeFactor(param, instanceID);
+                o.thickness = thickness;
                 o.normal = v.normal;
                 return o;
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-                clip(_Timeline - i.timeFactor);
+
+              fixed4 lut = tex2D(_Lut, float2(pow(i.thickness, .2), 0));
+            return lut;
                 float3 norm = i.normal * .5 + .5;
-                float3 lerpColor = lerp(float3(3, 1, 1) * .5, float3(.1, .3, .5), pow(i.testParam, .5));
-                norm = lerp(norm, lerpColor, .5);
-                norm = pow(norm, 2);
-                return float4(norm, 1);
+                float3 lerpColor = lerp(float3(3, 1, 1) * .5, float3(.2, .4, 2), pow(i.thickness, .5));
+                float shade = 1 - norm.y * .5;
+                float3 col = lerpColor;
+                //col *= shade;
+                //norm = lerp(norm, lerpColor, .6);
+                //col = pow(col, 2);
+                return float4(col, 1);
             }
             ENDCG
         }

@@ -933,14 +933,14 @@ MonoBehaviour:
     - {fileID: 2800000, guid: 1a17cfa915ceec843aefde4e358b88ce, type: 3}
     - {fileID: 2800000, guid: 03ad94c4b0f43d24da34025d41ea984f, type: 3}
     Clamp: 0
-  Timeline: 1
-  FeedDropGravity: 0.08
+  Timeline: 0.516
+  FeedDropGravity: 0.02
   BaseIntensity: 0.1
-  StrandIntensity: 0.1
-  DispersionBaseIntensity: 0.01
+  StrandIntensity: 0.2
+  DispersionBaseIntensity: 0.002
   DispersionDecay: 1
   RootPointsCount: 32
-  StrandsPerBasePoint: 32
+  StrandsPerBasePoint: 64
   Dispersions: 256
 --- !u!1 &1333495900
 GameObject:
