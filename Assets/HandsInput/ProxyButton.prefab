@@ -125,10 +125,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2bf74e71a3aa0b2498530059aa3b9219, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PressedColor: {r: 0, g: 0.55032945, b: 1, a: 0.57254905}
-  ToggledColor: {r: 1, g: 0.5643389, b: 0, a: 0.5176471}
-  RegularColor: {r: 0, g: 0, b: 0, a: 0.49019608}
-  Icon: {fileID: 6746830100752444925}
+  PressedColor: {r: 0, g: 0.23529412, b: 1, a: 1}
+  ToggledColor: {r: 1, g: 0.5643389, b: 0, a: 1}
+  RegularColor: {r: 1, g: 1, b: 1, a: 1}
+  Icon: {fileID: 923634280330600535}
+  ToggledIconGlyph: 
 --- !u!1 &7645592879971846227
 GameObject:
   m_ObjectHideFlags: 0

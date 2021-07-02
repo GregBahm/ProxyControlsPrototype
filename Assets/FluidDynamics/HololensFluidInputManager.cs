@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class HololensFluidInputManager : MonoBehaviour
 {
+    public FluidSimulator Sim;
+
     public float Deadzone = .1f;
 
     private Transform translationHelper;
@@ -13,12 +15,15 @@ public class HololensFluidInputManager : MonoBehaviour
 
     public Transform TargetTransform;
 
+    public float RotationSpeed = 1000;
+
     public ProxyButton MoveButton;
     public ProxyButton RotateButton;
     public ProxyButton ScaleButton;
+    public ProxyButton PlayPause;
 
-    public Transform LeftEffector;
-    public Transform RightEffector;
+    public ImpulserScript LeftEffector;
+    public ImpulserScript RightEffector;
 
     public enum LeftHandToolMode
     {
@@ -64,17 +69,28 @@ public class HololensFluidInputManager : MonoBehaviour
 
     void Update()
     {
+        UpdatePlayPause();
         UpdatePinchAndDrag();
         UpdateEffectors();
     }
 
+    private void UpdatePlayPause()
+    {
+        Sim.enabled = PlayPause.Toggled;
+        LeftEffector.enabled = PlayPause.Toggled;
+        RightEffector.enabled = PlayPause.Toggled;
+    }
+
+    private void SetEffector(Transform proxy, HandProxy hand)
+    {
+        proxy.position = hand.IndexTip.position;
+        proxy.rotation = Quaternion.LookRotation(hand.IndexTip.position - hand.IndexDistal.position);
+    }
+
     private void UpdateEffectors()
     {
-        LeftEffector.position = Hands.Instance.LeftHandProxy.IndexTip.position;
-        LeftEffector.rotation = Hands.Instance.LeftHandProxy.Palm.rotation;
-
-        RightEffector.position = Hands.Instance.RightHandProxy.IndexTip.position;
-        RightEffector.rotation = Hands.Instance.RightHandProxy.Palm.rotation;
+        SetEffector(LeftEffector.transform, Hands.Instance.LeftHandProxy);
+        SetEffector(RightEffector.transform, Hands.Instance.RightHandProxy);
     }
 
     private void UpdatePinchAndDrag()
@@ -115,16 +131,25 @@ public class HololensFluidInputManager : MonoBehaviour
         }
     }
 
+    private Plane planeOfRotation;
     private bool wasRotating;
+    private Quaternion startRot;
     private void UpdateRotating()
     {
         if(!wasRotating && LeftPinchDetector.PinchBeginning)
         {
             translationHelper.position = LeftPinchDetector.PinchPoint.position;
+            Vector3 toPinch = Camera.main.transform.position - translationHelper.position;
+            Vector3 rotationPlane = Vector3.Cross(toPinch, Vector3.up).normalized;
+            planeOfRotation = new Plane(rotationPlane, translationHelper.position);
+            startRot = TargetTransform.rotation;
         }
         if(LeftPinchDetector.Pinching)
         {
             translationHelper.position = GetDeadzoneMovement();
+            float distToRotPlane = -planeOfRotation.GetDistanceToPoint(translationHelper.position);
+            Quaternion rot = Quaternion.AngleAxis(distToRotPlane * RotationSpeed, Vector3.up);
+            TargetTransform.rotation = startRot * rot;
         }
         wasRotating = LeftPinchDetector.Pinching;
     }
