@@ -7,7 +7,8 @@ public class BaitPlumeTracer : MonoBehaviour
 {
     public Mesh StrandMesh;
     public Material PlumeStrandMaterial;
-    public BoxCollider PlumeBoundsSource;
+    public Transform PlumeRoot;
+    public Transform CoordsOffset;
 
     public float StrandThickness;
 
@@ -20,7 +21,6 @@ public class BaitPlumeTracer : MonoBehaviour
     public float BaseIntensity;
     public float StrandIntensity;
     public float DispersionBaseIntensity;
-    public float DispersionDecay;
 
     public int RootPointsCount;
     public int StrandsPerBasePoint;
@@ -87,13 +87,16 @@ public class BaitPlumeTracer : MonoBehaviour
         DrawStrands();
     }
 
+    public BoxCollider BoundsSource;
+
     private void DrawStrands()
     {
         PlumeStrandMaterial.SetBuffer("_PlumeStrands", plumeStrandsBuffer);
         PlumeStrandMaterial.SetFloat("_StrandThickness", StrandThickness);
         PlumeStrandMaterial.SetFloat("_Timeline", Timeline);
         PlumeStrandMaterial.SetFloat("_TotalStrands", totalStrands);
-        Graphics.DrawMeshInstancedIndirect(StrandMesh, 0, PlumeStrandMaterial, PlumeBoundsSource.bounds, argsBuffer);
+        PlumeStrandMaterial.SetMatrix("masterTransform", PlumeRoot.localToWorldMatrix);
+        Graphics.DrawMeshInstancedIndirect(StrandMesh, 0, PlumeStrandMaterial, BoundsSource.bounds, argsBuffer);
     }
 
     private void DispatchCompute()
@@ -106,6 +109,7 @@ public class BaitPlumeTracer : MonoBehaviour
         BaitPlumeCompute.SetFloat("_DispersionDecay", DispersionBaseIntensity);
         BaitPlumeCompute.SetFloat("_DispersionBaseIntensity", DispersionBaseIntensity);
         BaitPlumeCompute.SetFloat("_Time", Time.realtimeSinceStartup);
+        BaitPlumeCompute.SetVector("_MapOffset", CoordsOffset.localPosition);
 
         BaitPlumeCompute.SetBuffer(plumeStrandsKernel, "_BasePositions", basePointsBuffer);
         BaitPlumeCompute.SetBuffer(plumeStrandsKernel, "_PlumeStrands", plumeStrandsBuffer);

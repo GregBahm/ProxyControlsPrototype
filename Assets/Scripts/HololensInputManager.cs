@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class HololensInputManager : MonoBehaviour
 {
-    public FeedDropSim FeedDrop;
+    public BaitPlumeTracer BaitPlume;
 
     public float Deadzone = .1f;
 
@@ -16,13 +16,12 @@ public class HololensInputManager : MonoBehaviour
     public PinchDetector RightPinchDetector;
 
     public Transform TargetTransform;
+    public Transform DataOffset;
 
     public ProxyButton MoveButton;
     public ProxyButton RotateButton;
     public ProxyButton ScaleButton;
     public ProxyButton StartStopButton;
-
-    public Transform StartingPointIndicator;
 
     public enum LeftHandToolMode
     {
@@ -70,16 +69,16 @@ public class HololensInputManager : MonoBehaviour
     void Update()
     {
         UpdatePinchAndDrag();
-        FeedDrop.UpdateComputation = StartStopButton.Toggled;
-        UpdateResetter();
+        UpdateDropBait();
     }
 
-    private void UpdateResetter()
+    private void UpdateDropBait()
     {
-        StartingPointIndicator.position = RightPinchDetector.PinchPoint.position;
         if(RightPinchDetector.PinchBeginning)
         {
-            FeedDrop.RestartSimAt(StartingPointIndicator.position);
+            Vector3 dataOffsetPosition = BaitPlume.PlumeRoot.position;
+            BaitPlume.PlumeRoot.position = RightPinchDetector.PinchPoint.position;
+            DataOffset.position = dataOffsetPosition;
         }
     }
 
@@ -102,10 +101,10 @@ public class HololensInputManager : MonoBehaviour
 
     private float startDist;
     private float startScale;
-    private bool wasResizing;
+
     private void UpdateResizing()
     {
-        if (!wasResizing && LeftPinchDetector.PinchBeginning)
+        if (LeftPinchDetector.PinchBeginning)
         {
             translationHelper.position = LeftPinchDetector.PinchPoint.position;
             startDist = (TargetTransform.position - translationHelper.position).magnitude;
@@ -121,27 +120,20 @@ public class HololensInputManager : MonoBehaviour
         }
     }
 
-    private Vector3 rotationUp;
+    private Quaternion startRotation;
+    private float addedRotation;
+    private Plane rotationPlane;
     private bool wasRotating;
     private void UpdateRotating()
     {
         if(!wasRotating && LeftPinchDetector.PinchBeginning)
         {
+            startRotation = TargetTransform.rotation;
             translationHelper.position = LeftPinchDetector.PinchPoint.position;
-            rotationHelper.position = TargetTransform.position;
-            rotationUp = TargetTransform.up;
-            rotationHelper.LookAt(translationHelper, rotationUp);
-            TargetTransform.SetParent(rotationHelper, true);
         }
         if(LeftPinchDetector.Pinching)
         {
             translationHelper.position = GetDeadzoneMovement();
-
-            rotationHelper.LookAt(translationHelper, TargetTransform.up);
-        }
-        if(wasRotating && !LeftPinchDetector.Pinching)
-        {
-            TargetTransform.SetParent(null, true);
         }
         wasRotating = LeftPinchDetector.Pinching;
     }

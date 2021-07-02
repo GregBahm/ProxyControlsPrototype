@@ -12,6 +12,8 @@ float _Time;
 float _DispersionsCount;
 float _StrandsPerBasePoint;
 
+float3 _MapOffset;
+
 Texture3D MapTexture;
 SamplerState samplerMapTexture;
 
@@ -23,7 +25,7 @@ float3 ApplyCurrents(float3 currentPos, float intensity, float3 dispersion)
 {
   float3 uvs = currentPos * float3(.4, 1, .4);
 
-  uvs += .5;
+  uvs += _MapOffset;
   uvs += float3(_Time * .001, _Time * .001, _Time * .001);
 
   float2 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs, 0).xy;

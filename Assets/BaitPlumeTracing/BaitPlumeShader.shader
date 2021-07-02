@@ -30,6 +30,7 @@ Shader "Unlit/BaitPlumeShader"
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f
@@ -38,7 +39,10 @@ Shader "Unlit/BaitPlumeShader"
                 float4 vertex : SV_POSITION;
                 float thickness : TEXCOORD1;
                 float3 normal : NORMAL;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
+
+            float4x4 masterTransform;
 
             float _Timeline;
             float _TotalStrands;
@@ -109,8 +113,14 @@ Shader "Unlit/BaitPlumeShader"
                 float3 newPos = strokeCenter + strokeTangent * thickness * _StrandThickness;
                 v.vertex = float4(newPos, 1);
 
-                v2f o; 
-                o.vertex = UnityObjectToClipPos(v.vertex);
+                float4 worldPos = mul(masterTransform, float4(newPos, 1));
+
+                v2f o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_OUTPUT(v2f, o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+                o.vertex = mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, worldPos));
+                //o.vertex = UnityObjectToClipPos(v.vertex);
                 o.thickness = thickness;
                 o.normal = v.normal;
                 return o;
