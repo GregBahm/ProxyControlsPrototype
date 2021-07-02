@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: BaitPlumeMat
+  m_Name: CurrentsMat
   m_Shader: {fileID: 4800000, guid: 8571017557e90014c8cc5e7bad589cc6, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
@@ -40,7 +40,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Lut:
-        m_Texture: {fileID: 2800000, guid: d9ed14b38ef22964d814dc20b4b3719d, type: 3}
+        m_Texture: {fileID: 2800000, guid: ad6d90d06a78bf04b99afee35ddbc3bf, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:

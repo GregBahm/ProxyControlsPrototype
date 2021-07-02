@@ -1,4 +1,4 @@
-Shader "Unlit/BaitPlumeShader"
+Shader "Unlit/CurrentsShader"
 {
   Properties
   {
@@ -38,6 +38,7 @@ Shader "Unlit/BaitPlumeShader"
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
                 float thickness : TEXCOORD1;
+                float lengthVal : TEXCOORD1;
                 float3 normal : NORMAL;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -73,7 +74,9 @@ Shader "Unlit/BaitPlumeShader"
             {
               float strandsParam = (float)instanceID / _TotalStrands;
 
-              float time = _Timeline * 2 - 1;
+              float time = _Time.x * 10 + strandsParam * 20;
+              time %= 1;
+              time = time * 2 - 1;
 
               float strandsAlpha = 1 - saturate(abs(strandsParam - .5 - time) * 2);
 
@@ -123,14 +126,14 @@ Shader "Unlit/BaitPlumeShader"
                 //o.vertex = UnityObjectToClipPos(v.vertex);
                 o.thickness = thickness;
                 o.normal = v.normal;
+                o.lengthVal = param;
                 return o;
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-
-              fixed4 lut = tex2D(_Lut, float2(pow(i.thickness, .2), 0));
-            return lut;
+              fixed4 lut = tex2D(_Lut, float2(pow(i.thickness, .5), 0));
+              return lut;
                 float3 norm = i.normal * .5 + .5;
                 float3 lerpColor = lerp(float3(3, 1, 1) * .5, float3(.2, .4, 2), pow(i.thickness, .5));
                 float shade = 1 - norm.y * .5;

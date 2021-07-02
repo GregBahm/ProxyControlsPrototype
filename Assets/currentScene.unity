@@ -846,12 +846,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef481992fd31e0941b150b3342b6a47e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BaitPlume: {fileID: 1238949749}
+  Currents: {fileID: 1238949749}
   Deadzone: 0.1
   LeftPinchDetector: {fileID: 1238949744}
   RightPinchDetector: {fileID: 1238949748}
   TargetTransform: {fileID: 1748030953}
-  DataOffset: {fileID: 1639430390}
   MoveButton: {fileID: 705192926}
   RotateButton: {fileID: 175841255}
   ScaleButton: {fileID: 2101482509}
@@ -910,11 +909,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   StrandMesh: {fileID: 4423823845013724965, guid: 8536d844a02f2e340b05e54f393c032a, type: 3}
-  PlumeStrandMaterial: {fileID: 2100000, guid: a020bbf461ff4ab48a880710d8ee16f3, type: 2}
-  PlumeRoot: {fileID: 1748030953}
-  CoordsOffset: {fileID: 1639430390}
+  CurrentMaterial: {fileID: 2100000, guid: a020bbf461ff4ab48a880710d8ee16f3, type: 2}
   StrandThickness: 0.005
-  BaitPlumeCompute: {fileID: 7200000, guid: afa74882b39f27249b2e83f9c0dc9096, type: 3}
+  RootTransform: {fileID: 1748030953}
+  CurrentCompute: {fileID: 7200000, guid: afa74882b39f27249b2e83f9c0dc9096, type: 3}
   TextureGenerator:
     Textures:
     - {fileID: 2800000, guid: 4cf70d3c1b1128246920ce4b24ee9d27, type: 3}
@@ -935,13 +933,10 @@ MonoBehaviour:
     - {fileID: 2800000, guid: 03ad94c4b0f43d24da34025d41ea984f, type: 3}
     Clamp: 0
   Timeline: 0.516
-  FeedDropGravity: 0.02
-  BaseIntensity: 0.1
+  Height: 0
   StrandIntensity: 0.2
-  DispersionBaseIntensity: 0.002
-  RootPointsCount: 32
-  StrandsPerBasePoint: 128
-  Dispersions: 256
+  CurrentsCount: 10000
+  BoundsSource: {fileID: 1748030952}
 --- !u!1 &1333495900
 GameObject:
   m_ObjectHideFlags: 0
@@ -973,36 +968,6 @@ Transform:
   m_Father: {fileID: 1187096616}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1639430389
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1639430390}
-  m_Layer: 0
-  m_Name: DataOffset
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1639430390
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1639430389}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 1748030953}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1663464238 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4512168630319908738, guid: 3907758b9f519374e9400448d619b310, type: 3}
@@ -1019,7 +984,7 @@ GameObject:
   - component: {fileID: 1748030953}
   - component: {fileID: 1748030952}
   m_Layer: 0
-  m_Name: DataRootTransform
+  m_Name: RootTransform
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1048,8 +1013,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0.438}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
-  m_Children:
-  - {fileID: 1639430390}
+  m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

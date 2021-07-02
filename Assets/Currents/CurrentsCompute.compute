@@ -1,0 +1,41 @@
+#pragma kernel CalculateCurrents
+
+#define POINTS_PER_STRAND 16
+
+float _StrandIntensity;
+float _Time;
+float _Height;
+float3 _MapOffset;
+
+Texture3D MapTexture;
+SamplerState samplerMapTexture;
+
+StructuredBuffer<float2> _BasePositions;
+RWStructuredBuffer<float3> _CurrentStrands;
+
+float3 ApplyCurrents(float3 currentPos, float intensity)
+{
+  float3 uvs = currentPos * float3(.4, 1, .4);
+
+  uvs += _MapOffset;
+  //uvs += float3(_Time * .001, _Time * .001, _Time * .001);
+
+  float2 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs, 0).xy;
+  mapSample = mapSample * 2 - 1;
+  mapSample *= intensity;
+  float3 positionChange = float3(mapSample.x, 0, mapSample.y);
+  return currentPos + positionChange;
+}
+
+[numthreads(128, 1, 1)]
+void CalculateCurrents(uint3 id : SV_DispatchThreadID)
+{
+  float2 basePos = _BasePositions[id.x];
+  float3 pos = float3(basePos.x, _Height, basePos.y);
+  for (uint i = 0; i < POINTS_PER_STRAND; i++)
+  {
+    float strandParam = (float)i / POINTS_PER_STRAND;
+    _CurrentStrands[id.x * POINTS_PER_STRAND + i] = pos;
+    pos = ApplyCurrents(pos, _StrandIntensity);
+  }
+}

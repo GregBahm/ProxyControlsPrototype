@@ -3,24 +3,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HololensInputManager : MonoBehaviour
+public class HololensFluidInputManager : MonoBehaviour
 {
-    public CurrentsDisplay Currents;
-
     public float Deadzone = .1f;
 
     private Transform translationHelper;
-    private Transform rotationHelper;
 
     public PinchDetector LeftPinchDetector;
-    public PinchDetector RightPinchDetector;
 
     public Transform TargetTransform;
 
     public ProxyButton MoveButton;
     public ProxyButton RotateButton;
     public ProxyButton ScaleButton;
-    public ProxyButton StartStopButton;
+
+    public Transform LeftEffector;
+    public Transform RightEffector;
 
     public enum LeftHandToolMode
     {
@@ -34,7 +32,6 @@ public class HololensInputManager : MonoBehaviour
     private void Start()
     {
         translationHelper = new GameObject("Translation Helper").transform;
-        rotationHelper = new GameObject("Rotation Helper").transform;
         MoveButton.Clicked += OnMoveClicked;
         RotateButton.Clicked += OnRotateClicked;
         ScaleButton.Clicked += OnScaleClicked;
@@ -68,15 +65,16 @@ public class HololensInputManager : MonoBehaviour
     void Update()
     {
         UpdatePinchAndDrag();
-        UpdateCurrentHeight();
+        UpdateEffectors();
     }
 
-    private void UpdateCurrentHeight()
+    private void UpdateEffectors()
     {
-        if(RightPinchDetector.PinchBeginning)
-        {
-            //TODO: current height
-        }
+        LeftEffector.position = Hands.Instance.LeftHandProxy.IndexTip.position;
+        LeftEffector.rotation = Hands.Instance.LeftHandProxy.Palm.rotation;
+
+        RightEffector.position = Hands.Instance.RightHandProxy.IndexTip.position;
+        RightEffector.rotation = Hands.Instance.RightHandProxy.Palm.rotation;
     }
 
     private void UpdatePinchAndDrag()
@@ -117,15 +115,11 @@ public class HololensInputManager : MonoBehaviour
         }
     }
 
-    private Quaternion startRotation;
-    private float addedRotation;
-    private Plane rotationPlane;
     private bool wasRotating;
     private void UpdateRotating()
     {
         if(!wasRotating && LeftPinchDetector.PinchBeginning)
         {
-            startRotation = TargetTransform.rotation;
             translationHelper.position = LeftPinchDetector.PinchPoint.position;
         }
         if(LeftPinchDetector.Pinching)
