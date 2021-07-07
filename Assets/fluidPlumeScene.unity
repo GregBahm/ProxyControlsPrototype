@@ -1058,7 +1058,7 @@ GameObject:
   - component: {fileID: 1764591063}
   - component: {fileID: 1764591062}
   m_Layer: 0
-  m_Name: RightImpulser
+  m_Name: RightDyeSpray
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1076,7 +1076,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77392f5e544ce7478de1719d11a84a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ForceMultiplier: 0.1
+  color: {r: 1, g: 1, b: 1, a: 1}
+  radius: 2
+  force: 1
   simulator: {fileID: 1899616874}
 --- !u!23 &1764591063
 MeshRenderer:
@@ -1213,11 +1215,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22709c54e79e6414dbd7f8ca4784a9d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ImpulseRadius: 2
-  DyeDissipation: 0.99
-  VelocityDissipation: 0.999
-  TimeStep: 0.1
-  InkColor: {r: 1, g: 1, b: 1, a: 1}
+  dyeDissipation: 0.99
+  velocityDissipation: 0.999
+  timeStep: 0.01
   displayTexture: 0
   displayCubeMat: {fileID: 2100000, guid: bd54c0ee91b87da4199de453641610bf, type: 2}
   fluidSimulationShader: {fileID: 7200000, guid: fec093ce7d2b59a4285949893e5413a1, type: 3}
@@ -1489,7 +1489,7 @@ GameObject:
   - component: {fileID: 2103833386}
   - component: {fileID: 2103833385}
   m_Layer: 0
-  m_Name: LeftImpulser
+  m_Name: LeftDyeSpray
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1521,7 +1521,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77392f5e544ce7478de1719d11a84a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ForceMultiplier: 0.1
+  color: {r: 1, g: 1, b: 1, a: 1}
+  radius: 2
+  force: 1
   simulator: {fileID: 1899616874}
 --- !u!23 &2103833386
 MeshRenderer:

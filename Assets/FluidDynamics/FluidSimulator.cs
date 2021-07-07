@@ -5,12 +5,12 @@ using UnityEngine.Rendering;
 
 public class FluidSimulator : MonoBehaviour
 {
-    public float ImpulseRadius = 10;
-    public float DyeDissipation = 0.95f;
-    public float VelocityDissipation = 0.9999f;
-    public float TimeStep = 0.01f;
-
-    public Color InkColor;
+    [SerializeField]
+    private float dyeDissipation = 0.99f;
+    [SerializeField]
+    private float velocityDissipation = 0.999f;
+    [SerializeField]
+    private float timeStep = 0.01f;
 
     private static readonly Vector3 NumThreads = new Vector3(16, 16, 1);
     private static readonly Vector3 FluidSimResolution = new Vector3(64, 64, 64);
@@ -40,138 +40,120 @@ public class FluidSimulator : MonoBehaviour
     [SerializeField]
     private ComputeShader fluidSimulationShader = null;
 
-    private RenderTexture dyeTexture;
-    private RenderTexture readDyeTexture;
-    private RenderTexture velocityTexture;
-    public RenderTexture VelocityTexture { get{ return velocityTexture; } }
-    private RenderTexture readVelocityTexture;
-    private RenderTexture divergenceTexture;
-    private RenderTexture pressureTexture;
-    private RenderTexture readPressureTexture;
+    private RenderTexture _dyeTexture;
+    private RenderTexture _readDyeTexture;
+    private RenderTexture _velocityTexture;
+    private RenderTexture _readVelocityTexture;
+    private RenderTexture _divergenceTexture;
+    private RenderTexture _pressureTexture;
+    private RenderTexture _readPressureTexture;
 
-    private ComputeBuffer boundaryBuffer;
+    private ComputeBuffer _boundaryBuffer;
 
-    private int addImpulseKernelIndex;
-    private int advectionKernelIndex;
-    private int clearTexturesKernelIndex;
-    private int computeDivergenceKernelIndex;
-    private int jacobiKernelIndex;
-    private int subtractGradientKernelIndex;
-    private int drawPressureBoundaryKernelIndex;
-    private int drawVelocityBoundaryKernelIndex;
+    private int _addDyeSprayKernelIndex;
+    private int _advectionKernelIndex;
+    private int _clearTexturesKernelIndex;
+    private int _computeDivergenceKernelIndex;
+    private int _jacobiKernelIndex;
+    private int _subtractGradientKernelIndex;
+    private int _drawPressureBoundaryKernelIndex;
+    private int _drawVelocityBoundaryKernelIndex;
 
-    private int velocityTextureId;
-    private int readVelocityId;
-    private int dyeTextureId;
-    private int readDyeId;
-    private int resolutionId;
-    private int clearTextureId;
-    private int divergenceTextureId;
-    private int readDivergenceId;
-    private int pressureTextureId;
-    private int readPressureId;
-    private int boundaryValueId;
-    private int boundaryDataBufferId;
+    private int _velocityTextureId;
+    private int _readVelocityId;
+    private int _dyeTextureId;
+    private int _readDyeId;
+    private int _resolutionId;
+    private int _clearTextureId;
+    private int _divergenceTextureId;
+    private int _readDivergenceId;
+    private int _pressureTextureId;
+    private int _readPressureId;
+    private int _boundaryValueId;
+    private int _boundaryDataBufferId;
 
-    private int impulsePositionId;
-    private int impulseDirectionId;
+    private int _dyeSprayPositionId;
+    private int _dyeSprayDirectionId;
+    private int _dyeSprayRadiusId;
+    private int _dyeColorId;
 
-    private const int JacobiIterations = 50;
+    private int _mainTexId;
+    private int _dyeDissipationId;
+    private int _velocityDissipationId;
+    private int _timestepId;
+
+    private const int JacobiIterations = 50; 
 
     private void Start()
     {
-        addImpulseKernelIndex = fluidSimulationShader.FindKernel("AddImpulse");
-        advectionKernelIndex = fluidSimulationShader.FindKernel("Advect");
-        clearTexturesKernelIndex = fluidSimulationShader.FindKernel("ClearTextures");
-        computeDivergenceKernelIndex = fluidSimulationShader.FindKernel("ComputeDivergence");
-        jacobiKernelIndex = fluidSimulationShader.FindKernel("Jacobi");
-        subtractGradientKernelIndex = fluidSimulationShader.FindKernel("SubtractGradient");
-        drawPressureBoundaryKernelIndex = fluidSimulationShader.FindKernel("DrawPressureBoundary");
-        drawVelocityBoundaryKernelIndex = fluidSimulationShader.FindKernel("DrawVelocityBoundary");
+        _addDyeSprayKernelIndex = fluidSimulationShader.FindKernel("AddDyeSpray");
+        _advectionKernelIndex = fluidSimulationShader.FindKernel("Advect");
+        _clearTexturesKernelIndex = fluidSimulationShader.FindKernel("ClearTextures");
+        _computeDivergenceKernelIndex = fluidSimulationShader.FindKernel("ComputeDivergence");
+        _jacobiKernelIndex = fluidSimulationShader.FindKernel("Jacobi");
+        _subtractGradientKernelIndex = fluidSimulationShader.FindKernel("SubtractGradient");
+        _drawPressureBoundaryKernelIndex = fluidSimulationShader.FindKernel("DrawPressureBoundary");
+        _drawVelocityBoundaryKernelIndex = fluidSimulationShader.FindKernel("DrawVelocityBoundary");
 
-        velocityTextureId = Shader.PropertyToID("velocity");
-        readVelocityId = Shader.PropertyToID("ReadVelocity");
-        dyeTextureId = Shader.PropertyToID("dye");
-        readDyeId = Shader.PropertyToID("ReadDye");
-        resolutionId = Shader.PropertyToID("resolution");
-        impulsePositionId = Shader.PropertyToID("impulsePosition");
-        impulseDirectionId = Shader.PropertyToID("impulseDirection");
-        clearTextureId = Shader.PropertyToID("clearTexture");
-        divergenceTextureId = Shader.PropertyToID("divergence");
-        readDivergenceId = Shader.PropertyToID("ReadDivergence");
-        pressureTextureId = Shader.PropertyToID("pressure");
-        readPressureId = Shader.PropertyToID("ReadPressure");
-        boundaryValueId = Shader.PropertyToID("boundaryValue");
-        boundaryDataBufferId = Shader.PropertyToID("boundaryData");
+        _velocityTextureId = Shader.PropertyToID("_Velocity");
+        _readVelocityId = Shader.PropertyToID("ReadVelocity");
+        _dyeTextureId = Shader.PropertyToID("_Dye");
+        _readDyeId = Shader.PropertyToID("ReadDye");
+        _resolutionId = Shader.PropertyToID("_Resolution");
+        _dyeSprayPositionId = Shader.PropertyToID("_DyeSprayPosition");
+        _dyeSprayDirectionId = Shader.PropertyToID("_DyeSprayDirection");
+        _dyeSprayRadiusId = Shader.PropertyToID("_DyeSprayRadius");
+        _clearTextureId = Shader.PropertyToID("_ClearTexture");
+        _divergenceTextureId = Shader.PropertyToID("_Divergence");
+        _readDivergenceId = Shader.PropertyToID("ReadDivergence");
+        _pressureTextureId = Shader.PropertyToID("_Pressure");
+        _readPressureId = Shader.PropertyToID("ReadPressure");
+        _boundaryValueId = Shader.PropertyToID("_BoundaryValue");
+        _boundaryDataBufferId = Shader.PropertyToID("_BoundaryData");
+        _dyeColorId = Shader.PropertyToID("_DyeColor");
 
-        dyeTexture = CreateTexture();
-        readDyeTexture = CreateTexture();
-        velocityTexture = CreateTexture();
-        readVelocityTexture = CreateTexture();
-        divergenceTexture = CreateTexture();
-        pressureTexture = CreateTexture();
-        readPressureTexture = CreateTexture();
+        _mainTexId = Shader.PropertyToID("_MainTex");
+        _dyeDissipationId = Shader.PropertyToID("_DyeDissipation");
+        _velocityDissipationId = Shader.PropertyToID("_VelocityDissipation");
+        _timestepId = Shader.PropertyToID("_Timestep");
+
+        _dyeTexture = CreateTexture();
+        _readDyeTexture = CreateTexture();
+        _velocityTexture = CreateTexture();
+        _readVelocityTexture = CreateTexture();
+        _divergenceTexture = CreateTexture();
+        _pressureTexture = CreateTexture();
+        _readPressureTexture = CreateTexture();
         
         // Fluid sim properties
-        fluidSimulationShader.SetVector(resolutionId, FluidSimResolution);
+        fluidSimulationShader.SetVector(_resolutionId, FluidSimResolution);
 
         InitializeBoundaryBuffer();
-
-        AddImpulse(new Vector3(0.25f, 0.5f, 0.25f), new Vector3(1f, 1f, 1f));
-        AddImpulse(new Vector3(0.25f, 0.5f, 0.25f), new Vector3(1f, 1f, 1f));
-
-        AddImpulse(new Vector3(0.75f, 0.2f, 0.25f), new Vector3(-1f, 0f, 0f));
     }
 
     private void Update()
     {
-        // ADVECTION
         Advect();
         
-        // VELOCITY BOUNDARIES
         DrawVelocityBoundary();
 
-        // VISCOSITY
-
-        // COMPUTE DIVERGENCE
         ComputeDivergence();
 
-        // TODO: BOUNDARIES
+        ClearTexture(_pressureTexture);
+        ClearTexture(_readPressureTexture);
 
-        ClearTexture(pressureTexture);
-        ClearTexture(readPressureTexture);
-
-        // JACOBI SOLVER
         for (int i = 0; i < JacobiIterations; i++)
         {
             RunJacobi();
             DrawPressureBoundary();
         }
         
-        // SUBTRACT GRADIENT
         SubtractGradient();
         
-        if (Input.GetKeyDown(KeyCode.X))
-        {
-            Debug.Log("Advect!");
-            Advect();
-        }
-
-        if (Input.GetKeyDown(KeyCode.C))
-        {
-            Debug.Log("Clearing textures");
-
-            ClearTexture(dyeTexture);
-            ClearTexture(readDyeTexture);
-        }
-        displayCubeMat.SetTexture("_MainTex", GetTexture(displayTexture));
-        fluidSimulationShader.SetFloat("impulseRadius", ImpulseRadius);
-        fluidSimulationShader.SetFloat("dyeDissipation", DyeDissipation);
-        fluidSimulationShader.SetFloat("velocityDissipation", VelocityDissipation);
-        fluidSimulationShader.SetFloat("timestep", TimeStep);
-        fluidSimulationShader.SetVector("inkColor", InkColor);
-        Shader.SetGlobalTexture("_dyeTexture", dyeTexture);
-        Shader.SetGlobalTexture("_velocityTexture", velocityTexture);
+        displayCubeMat.SetTexture(_mainTexId, GetTexture(displayTexture));
+        fluidSimulationShader.SetFloat(_dyeDissipationId, dyeDissipation);
+        fluidSimulationShader.SetFloat(_velocityDissipationId, velocityDissipation);
+        fluidSimulationShader.SetFloat(_timestepId, timeStep);
     }
 
     private Texture GetTexture(TextureType displayTexture)
@@ -179,32 +161,31 @@ public class FluidSimulator : MonoBehaviour
         switch (displayTexture)
         {
             case TextureType.Dye:
-                return readDyeTexture;
+                return _readDyeTexture;
             case TextureType.Velocity:
-                return readVelocityTexture;
+                return _readVelocityTexture;
             case TextureType.Divergence:
-                return divergenceTexture;
+                return _divergenceTexture;
             case TextureType.Pressure:
             default:
-                return pressureTexture;
+                return _pressureTexture;
         }
 
     }
 
     private void OnDestroy()
     {
-        boundaryBuffer.Dispose();
+        _boundaryBuffer.Dispose();
     }
 
 
     private void InitializeBoundaryBuffer()
     {
-#if !SIM3D
         int boundarySize = (int) (FluidSimResolution.x * FluidSimResolution.y * 2 +
                                   FluidSimResolution.x * FluidSimResolution.z * 2 +
                                   FluidSimResolution.y * FluidSimResolution.z * 2);
 
-        boundaryBuffer = new ComputeBuffer(boundarySize, BoundaryDataStride);
+        _boundaryBuffer = new ComputeBuffer(boundarySize, BoundaryDataStride);
 
         BoundaryData[] boundaryData = new BoundaryData[boundarySize];
 
@@ -253,60 +234,27 @@ public class FluidSimulator : MonoBehaviour
                 currentIndex++;
             }
         }
-#else
-        int boundarySize = (int)(FluidSimResolution.x * 2 + FluidSimResolution.y * 2);
-        boundaryBuffer = new ComputeBuffer(boundarySize, BoundaryDataStride);
 
-        BoundaryData[] boundaryData = new BoundaryData[boundarySize];
-
-        int currentIndex = 0;
-        for (int i = 0; i < FluidSimResolution.x; i++)
-        {
-            boundaryData[currentIndex].pixelCoords = new Vector3(i, 0, 0);
-            boundaryData[currentIndex].insideOffset = new Vector3(0, 1, 0);
-
-            currentIndex++;
-
-            boundaryData[currentIndex].pixelCoords = new Vector3(i, FluidSimResolution.y - 1, 0);
-            boundaryData[currentIndex].insideOffset = new Vector3(0, -1, 0);
-
-            currentIndex++;
-        }
-
-        for (int j = 0; j < FluidSimResolution.y; j++)
-        {
-            boundaryData[currentIndex].pixelCoords = new Vector3(0, j, 0);
-            boundaryData[currentIndex].insideOffset = new Vector3(1, 0, 0);
-
-            currentIndex++;
-
-            boundaryData[currentIndex].pixelCoords = new Vector3(FluidSimResolution.x - 1, j, 0);
-            boundaryData[currentIndex].insideOffset = new Vector3(-1, 0, 0);
-
-            currentIndex++;
-        }
-#endif
-
-        Assert.IsTrue(currentIndex == boundarySize, "Make sure the boundary buffer was generated properly.");
-
-        boundaryBuffer.SetData(boundaryData);
+        _boundaryBuffer.SetData(boundaryData);
     }
 
     private void ClearTexture(RenderTexture texture)
     {
-        fluidSimulationShader.SetTexture(clearTexturesKernelIndex, clearTextureId, texture);
-        DispatchKernel(clearTexturesKernelIndex);
+        fluidSimulationShader.SetTexture(_clearTexturesKernelIndex, _clearTextureId, texture);
+        DispatchKernel(_clearTexturesKernelIndex);
     }
 
-    public void AddImpulse(Vector3 impulsePosition, Vector3 impulseDirection)
+    public void SprayDye(Vector3 position, Vector3 direction, float radius, Color color)
     {
-        SetDyeTextures(addImpulseKernelIndex);
-        SetVelocityTextures(addImpulseKernelIndex);
+        SetDyeTextures(_addDyeSprayKernelIndex);
+        SetVelocityTextures(_addDyeSprayKernelIndex);
 
-        fluidSimulationShader.SetFloats(impulsePositionId, impulsePosition.x, impulsePosition.y, impulsePosition.z);
-        fluidSimulationShader.SetFloats(impulseDirectionId, impulseDirection.x, impulseDirection.y, impulseDirection.z);
+        fluidSimulationShader.SetVector(_dyeColorId, color);
+        fluidSimulationShader.SetFloat(_dyeSprayRadiusId, radius);
+        fluidSimulationShader.SetFloats(_dyeSprayPositionId, position.x, position.y, position.z);
+        fluidSimulationShader.SetFloats(_dyeSprayDirectionId, direction.x, direction.y, direction.z);
         
-        DispatchKernel(addImpulseKernelIndex);
+        DispatchKernel(_addDyeSprayKernelIndex);
 
         SwapDyeTextures();
         SwapVelocityTextures();
@@ -314,10 +262,10 @@ public class FluidSimulator : MonoBehaviour
 
     private void Advect()
     {
-        SetDyeTextures(advectionKernelIndex);
-        SetVelocityTextures(advectionKernelIndex);
+        SetDyeTextures(_advectionKernelIndex);
+        SetVelocityTextures(_advectionKernelIndex);
 
-        DispatchKernel(advectionKernelIndex);
+        DispatchKernel(_advectionKernelIndex);
 
         SwapDyeTextures();
         SwapVelocityTextures();
@@ -326,32 +274,28 @@ public class FluidSimulator : MonoBehaviour
     private void DrawVelocityBoundary()
     {
         SwapVelocityTextures();
-        SetVelocityTextures(drawVelocityBoundaryKernelIndex);
+        SetVelocityTextures(_drawVelocityBoundaryKernelIndex);
 
-        fluidSimulationShader.SetFloat(boundaryValueId, 0f);
-        fluidSimulationShader.SetBuffer(drawVelocityBoundaryKernelIndex, boundaryDataBufferId, boundaryBuffer);
+        fluidSimulationShader.SetFloat(_boundaryValueId, 0f);
+        fluidSimulationShader.SetBuffer(_drawVelocityBoundaryKernelIndex, _boundaryDataBufferId, _boundaryBuffer);
 
-        fluidSimulationShader.Dispatch(drawVelocityBoundaryKernelIndex, Mathf.CeilToInt(boundaryBuffer.count / NumThreads.x), 1, 1);
+        fluidSimulationShader.Dispatch(_drawVelocityBoundaryKernelIndex, Mathf.CeilToInt(_boundaryBuffer.count / NumThreads.x), 1, 1);
 
         SwapVelocityTextures();
     }
 
     private void ComputeDivergence()
     {
-        SetVelocityTextures(computeDivergenceKernelIndex);
-
-        fluidSimulationShader.SetTexture(computeDivergenceKernelIndex, divergenceTextureId, divergenceTexture);
-
-        DispatchKernel(computeDivergenceKernelIndex);
+        SetVelocityTextures(_computeDivergenceKernelIndex);
+        fluidSimulationShader.SetTexture(_computeDivergenceKernelIndex, _divergenceTextureId, _divergenceTexture);
+        DispatchKernel(_computeDivergenceKernelIndex);
     }
 
     private void RunJacobi()
     {
-        SetPressureTextures(jacobiKernelIndex);
-
-        fluidSimulationShader.SetTexture(jacobiKernelIndex, readDivergenceId, divergenceTexture);
-
-        DispatchKernel(jacobiKernelIndex);
+        SetPressureTextures(_jacobiKernelIndex);
+        fluidSimulationShader.SetTexture(_jacobiKernelIndex, _readDivergenceId, _divergenceTexture);
+        DispatchKernel(_jacobiKernelIndex);
     }
 
     private void DrawPressureBoundary()
@@ -360,22 +304,22 @@ public class FluidSimulator : MonoBehaviour
         // Need a kernel that copies the value as-is if it's not a boundary pixel and
         // copies the "inside pixel" value if it's a boundary pixel.
 
-        SetPressureTextures(drawPressureBoundaryKernelIndex);
+        SetPressureTextures(_drawPressureBoundaryKernelIndex);
 
-        fluidSimulationShader.SetFloat(boundaryValueId, 1f);
-        fluidSimulationShader.SetBuffer(drawPressureBoundaryKernelIndex, boundaryDataBufferId, boundaryBuffer);
+        fluidSimulationShader.SetFloat(_boundaryValueId, 1f);
+        fluidSimulationShader.SetBuffer(_drawPressureBoundaryKernelIndex, _boundaryDataBufferId, _boundaryBuffer);
 
-        fluidSimulationShader.Dispatch(drawPressureBoundaryKernelIndex, Mathf.CeilToInt(boundaryBuffer.count / NumThreads.x), 1, 1);
+        fluidSimulationShader.Dispatch(_drawPressureBoundaryKernelIndex, Mathf.CeilToInt(_boundaryBuffer.count / NumThreads.x), 1, 1);
 
         SwapPressureTextures();
     }
 
     private void SubtractGradient()
     {
-        SetPressureTextures(subtractGradientKernelIndex);
-        SetVelocityTextures(subtractGradientKernelIndex);
+        SetPressureTextures(_subtractGradientKernelIndex);
+        SetVelocityTextures(_subtractGradientKernelIndex);
 
-        DispatchKernel(subtractGradientKernelIndex);
+        DispatchKernel(_subtractGradientKernelIndex);
 
         SwapVelocityTextures();
     }
@@ -387,41 +331,41 @@ public class FluidSimulator : MonoBehaviour
 
     private void SwapDyeTextures()
     {
-        var temp = readDyeTexture;
-        readDyeTexture = dyeTexture;
-        dyeTexture = temp;
+        var temp = _readDyeTexture;
+        _readDyeTexture = _dyeTexture;
+        _dyeTexture = temp;
     }
 
     private void SetDyeTextures(int kernelIndex)
     {
-        fluidSimulationShader.SetTexture(kernelIndex, dyeTextureId, dyeTexture);
-        fluidSimulationShader.SetTexture(kernelIndex, readDyeId, readDyeTexture);
+        fluidSimulationShader.SetTexture(kernelIndex, _dyeTextureId, _dyeTexture);
+        fluidSimulationShader.SetTexture(kernelIndex, _readDyeId, _readDyeTexture);
     }
 
     private void SwapVelocityTextures()
     {
-        var temp = readVelocityTexture;
-        readVelocityTexture = velocityTexture;
-        velocityTexture = temp;
+        var temp = _readVelocityTexture;
+        _readVelocityTexture = _velocityTexture;
+        _velocityTexture = temp;
     }
 
     private void SetVelocityTextures(int kernelIndex)
     {
-        fluidSimulationShader.SetTexture(kernelIndex, velocityTextureId, velocityTexture);
-        fluidSimulationShader.SetTexture(kernelIndex, readVelocityId, readVelocityTexture);
+        fluidSimulationShader.SetTexture(kernelIndex, _velocityTextureId, _velocityTexture);
+        fluidSimulationShader.SetTexture(kernelIndex, _readVelocityId, _readVelocityTexture);
     }
     
     private void SwapPressureTextures()
     {
-        var temp = readPressureTexture;
-        readPressureTexture = pressureTexture;
-        pressureTexture = temp;
+        var temp = _readPressureTexture;
+        _readPressureTexture = _pressureTexture;
+        _pressureTexture = temp;
     }
 
     private void SetPressureTextures(int kernelIndex)
     {
-        fluidSimulationShader.SetTexture(kernelIndex, pressureTextureId, pressureTexture);
-        fluidSimulationShader.SetTexture(kernelIndex, readPressureId, readPressureTexture);
+        fluidSimulationShader.SetTexture(kernelIndex, _pressureTextureId, _pressureTexture);
+        fluidSimulationShader.SetTexture(kernelIndex, _readPressureId, _readPressureTexture);
     }
 
     private static RenderTexture CreateTexture()

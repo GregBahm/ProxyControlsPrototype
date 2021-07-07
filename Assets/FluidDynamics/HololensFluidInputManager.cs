@@ -22,8 +22,8 @@ public class HololensFluidInputManager : MonoBehaviour
     public ProxyButton ScaleButton;
     public ProxyButton PlayPause;
 
-    public ImpulserScript LeftEffector;
-    public ImpulserScript RightEffector;
+    public DyeSprayer LeftEffector;
+    public DyeSprayer RightEffector;
 
     public enum LeftHandToolMode
     {

@@ -11,7 +11,6 @@
 
             LOD 100
             Blend One OneMinusSrcAlpha
-            // Cull Front
             Cull Back
             ZTest LEqual
             ZWrite Off
@@ -53,7 +52,7 @@
                 float _Alpha;
                 sampler2D _Gradient;
 
-                float _SliceAxis1Min, _SliceAxis1Max;
+                float _SliceAxis1Min, _SliceAxis1Max; 
                 float _SliceAxis2Min, _SliceAxis2Max;
                 float _SliceAxis3Min, _SliceAxis3Max;
 
@@ -63,9 +62,6 @@
                     UNITY_SETUP_INSTANCE_ID(v);
                     UNITY_INITIALIZE_OUTPUT(v2f, o);
                     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-
-                    // Vertex in object space this will be the starting point of raymarching
-                    //o.objectVertex = v.vertex;
 
                     // calculate eye ray in object space
                     o.ray_d = -ObjSpaceViewDir(v.vertex);
@@ -131,13 +127,6 @@
                     return sampledColor;
                 }
 
-                struct frag_out
-                {
-                    float4 color : SV_TARGET;
-                    float depth : SV_DEPTH;
-                };
-
-
                 // Converts local position to depth value
                 float localToDepth(float3 localPos)
                 {
@@ -150,7 +139,6 @@
 #endif
                 }
 
-                 // frag_out frag(v2f i) // : SV_Target
                 fixed4 frag(v2f i) : SV_Target
                 {
                     // Start raymarching at the front surface of the object
@@ -163,7 +151,6 @@
                     fixed4 color = fixed4(0, 0, 0, 0);
 
                     float stepSize = sqrt(3) / MAX_STEP_COUNT;
-                    uint iDepth = 0;
                     [unroll(MAX_STEP_COUNT)]
                     for (int i = 0; i < MAX_STEP_COUNT; i++)
                     {
@@ -173,22 +160,9 @@
                         if (max(absSample.x, max(absSample.y, absSample.z)) < 0.5f + EPSILON)
                         {
                             color = BlendUnder(color, DataToColor(samplePosition));
-                            // color = max(color, DataToColor(samplePosition));
-                            // iDepth = i;
                             samplePosition += rayDirection * stepSize;
                         }
                     }
-                /* // if we want to write out distance, this is how we'd do it.
-                  frag_out output;
-
-                  output.color = color;
-
-                  if (iDepth != 0 && color.a != 0)
-                      output.depth = localToDepth(rayOrigin + rayDirection * (iDepth * stepSize) - float3(0.5f, 0.5f, 0.5f));
-                  else
-                      output.depth = 0;
-
-                  return output;*/
                   return color;
               }
               ENDCG
