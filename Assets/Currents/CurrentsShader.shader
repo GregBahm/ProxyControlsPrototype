@@ -122,7 +122,7 @@ Shader "Unlit/CurrentsShader"
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-                o.vertex = mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, worldPos));
+                o.vertex = mul(UNITY_MATRIX_VP, worldPos);
                 //o.vertex = UnityObjectToClipPos(v.vertex);
                 o.thickness = thickness;
                 o.normal = v.normal;

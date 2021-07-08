@@ -1,25 +1,20 @@
-﻿Shader "Texture3D/VolumeShader"
+﻿Shader "Texture3D/SimpleVolumeShader"
 {
     Properties
     {
-        _MainTex("Texture", 3D) = "white" {}
         _Alpha("Alpha", float) = 0.02
         [NoScaleOffset]  _Gradient("Color Texture", 2D) = "" {}
-
-        [Toggle(FOCUS_PLANE_ON)]_FocusPlaneOn("Use Focus Plane", Int) = 0
-        [ShowProperty(FOCUS_PLANE_ON)] _FocusPlane("Focus Plane", Vector) = (0.0, 1.0, 0.0, 0.0)
-        [ShowProperty(FOCUS_PLANE_ON)] _FocusDropOff("Focus Drop Off", float) = 0.1
-        [Toggle(FOCUS_PLANE_SOFT_CUTOFF_ON)]_FocusPlaneSoftCutoffOn("Focus Plane Soft Cutoff", Int) = 0
     }
         SubShader
         {
-            //Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
+            Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
 
             LOD 100
-            //Blend One OneMinusSrcAlpha
-            ZTest Always
-            ZWrite On
-            //Fog { Mode off }
+            Blend One OneMinusSrcAlpha
+            Cull Back
+            ZTest LEqual
+            ZWrite Off
+            Fog { Mode off }
 
             Pass
             {
@@ -27,7 +22,7 @@
                 #pragma vertex vert
                 #pragma fragment frag
                 #pragma multi_compile ___ FOCUS_PLANE_ON
-                #pragma multi_compile ____ FOCUS_PLANE_HARD_CUTOFF_ON 
+                #pragma multi_compile ____ FOCUS_PLANE_HARD_CUTOFF_ON
 
                 #include "UnityCG.cginc"
 
@@ -57,10 +52,7 @@
                 float _Alpha;
                 sampler2D _Gradient;
 
-                float4 _FocusPlane;
-                float _FocusDropOff;
-
-                float _SliceAxis1Min, _SliceAxis1Max;
+                float _SliceAxis1Min, _SliceAxis1Max; 
                 float _SliceAxis2Min, _SliceAxis2Max;
                 float _SliceAxis3Min, _SliceAxis3Max;
 
@@ -70,9 +62,6 @@
                     UNITY_SETUP_INSTANCE_ID(v);
                     UNITY_INITIALIZE_OUTPUT(v2f, o);
                     UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
-
-                    // Vertex in object space this will be the starting point of raymarching
-                    //o.objectVertex = v.vertex;
 
                     // calculate eye ray in object space
                     o.ray_d = -ObjSpaceViewDir(v.vertex);
@@ -85,7 +74,7 @@
                 fixed4 BlendUnder(fixed4 color, fixed4 newColor)
                 {
                     color.rgb += (1.0 - color.a) * newColor.a * newColor.rgb;
-                    color.a += (1.0 - color.a) * newColor.a;
+                    //color.a += (1.0 - color.a) * newColor.a;
                     return color;
                 }
 
@@ -132,19 +121,11 @@
                     float data = sampledData.r;
                     float alpha = sampledData.g;
 
-                    data = saturate(data);
-                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, 0);
+                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
                     sampledColor.a *= _Alpha;
 
                     return sampledColor;
                 }
-
-                struct frag_out
-                {
-                    float4 color : SV_TARGET;
-                    float depth : SV_DEPTH;
-                };
-
 
                 // Converts local position to depth value
                 float localToDepth(float3 localPos)
@@ -158,8 +139,7 @@
 #endif
                 }
 
-                frag_out frag(v2f i) // : SV_Target
-                //fixed4 frag(v2f i) : SV_Target
+                fixed4 frag(v2f i) : SV_Target
                 {
                     // Start raymarching at the front surface of the object
                     fixed3 rayOrigin = i.ray_o;
@@ -167,13 +147,10 @@
                     // this needs to be normalized here and not in the vert shader, 
                     // as it's linearly interpolated, and would need to be renormalized anyway
                     fixed3 rayDirection = normalize(i.ray_d);
-
-                    // Raymarch through object space
                     fixed3 samplePosition = rayOrigin;
                     fixed4 color = fixed4(0, 0, 0, 0);
 
                     float stepSize = sqrt(3) / MAX_STEP_COUNT;
-                    uint iDepth = 0;
                     [unroll(MAX_STEP_COUNT)]
                     for (int i = 0; i < MAX_STEP_COUNT; i++)
                     {
@@ -183,30 +160,10 @@
                         if (max(absSample.x, max(absSample.y, absSample.z)) < 0.5f + EPSILON)
                         {
                             color = BlendUnder(color, DataToColor(samplePosition));
-                            //color = max(color, DataToColor(samplePosition));
-                            iDepth = i;
                             samplePosition += rayDirection * stepSize;
                         }
                     }
-                // if we want to write out distance, this is how we'd do it.
-                  frag_out output;
-
-                  output.color = color;
-
-                  if (iDepth != 0 && color.a != 0)
-                  {
-                    //output.depth = 1;
-                    output.depth = localToDepth(rayOrigin + rayDirection * (iDepth * stepSize) - float3(0.5f, 0.5f, 0.5f));
-                  }
-                  else
-                  {
-                    //output.depth = 1;
-                    output.depth = 0;
-                  }
-                  //output.color.rgb = output.depth * 100;
-                  return output;
-
-                  //return color;
+                  return color;
               }
               ENDCG
           }
