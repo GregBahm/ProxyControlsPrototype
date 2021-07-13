@@ -188,6 +188,7 @@
 				half3 wNormal : TEXCOORD4;
 				half3 wTangent : TEXCOORD5;
 				half3 wBitangent : TEXCOORD6;
+				float depth : TEXCOORD7;
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
 
@@ -195,6 +196,14 @@
 			{
 				float3 planePosition = plane.xyz * plane.w;
 				return dot(worldPosition - planePosition, plane.xyz);
+			}
+
+			float GetDepth(float4 worldPos)
+			{
+				float toCamera = length(worldPos - _WorldSpaceCameraPos);
+				float ret = 2 - toCamera * .5;
+				ret = saturate(ret);
+				return ret;
 			}
 
 			v2f vert(appdata v)
@@ -205,7 +214,8 @@
 				UNITY_INITIALIZE_OUTPUT(v2f, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
+				float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
+				o.posWorld = worldPos.xyz;
 				o.uv = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
 #ifdef AO
 				o.uv2 = UnityStereoScreenSpaceUVAdjust(v.uv2, _AOTex_ST);
@@ -222,14 +232,13 @@
 #ifdef FOG
 				UNITY_TRANSFER_FOG(o,o.pos);
 #endif
-
+				o.depth = GetDepth(worldPos);
 				return o;
 			}
 
 
 			float4 frag(v2f i) : COLOR
 			{
-
 				//Diffuse Maps And Masks
 				fixed4 col = tex2D(_MainTex, i.uv);
 				col *= _Color;
@@ -388,6 +397,9 @@
 #ifdef ALPHACLIP
 				clip(finalResult.a - _Cutoff);
 #endif
+
+				float4 litResult = i.depth * finalResult * float4(2, 2.5, 2.5, 1);
+				finalResult = lerp(litResult, finalResult, .5);
 				finalResult.a = 1;
 				return finalResult;
 			}

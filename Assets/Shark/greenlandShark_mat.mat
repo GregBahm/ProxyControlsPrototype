@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: greenlandShark_mat
   m_Shader: {fileID: 4800000, guid: ccaa99a8e15e07845ae59c9f3321699b, type: 3}
-  m_ShaderKeywords: FOG RIM _ENABLERIMDELTADAMP_ON
+  m_ShaderKeywords: FOG _ENABLERIMDELTADAMP_ON
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -97,7 +97,7 @@ Material:
     - _EnableEnableFog: 1
     - _EnableNOAARim: 0
     - _EnableRevClipPlane: 0
-    - _EnableRim: 1
+    - _EnableRim: 0
     - _EnableRimDeltaDamp: 1
     - _GlossMapScale: 1
     - _Glossiness: 0.5
@@ -128,5 +128,5 @@ Material:
     - _Colorize: {r: 1, g: 1, b: 1, a: 1}
     - _EdgeColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _RimColor: {r: 0.1607843, g: 0.5707072, b: 0.83137256, a: 1}
+    - _RimColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []

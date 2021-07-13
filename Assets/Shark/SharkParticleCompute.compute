@@ -1,0 +1,41 @@
+#pragma kernel UpdateParticles
+
+float _ParticleSpeed;
+float _DeltaTime;
+Buffer<float2> _OriginalXYBuffer;
+RWStructuredBuffer<float3> _ParticleBuffer;
+
+float3 _SharkHeadPosition;
+
+Texture2D NoiseTexture;
+
+float3 GetLoopedPos(float3 currentPos, uint id)
+{
+  float z = currentPos.z + 1;
+  return float3(_OriginalXYBuffer[id], z);
+}
+
+float3 GetSharkheadOffset(float3 currentPos)
+{
+  float3 fromSharkHead = currentPos - _SharkHeadPosition;
+  float fromHeadLength = length(fromSharkHead);
+  float pushPower = saturate(.5 - fromHeadLength);
+  pushPower = pow(pushPower, .75);
+  return fromSharkHead * pushPower * _DeltaTime;
+}
+
+[numthreads(128, 1, 1)]
+void UpdateParticles(uint3 id : SV_DispatchThreadID)
+{
+  float3 currentPos = _ParticleBuffer[id.x];
+  float3 flowOffset = float3(0, 0, -_ParticleSpeed * _DeltaTime);
+  float3 sharkheadOffset = GetSharkheadOffset(currentPos);
+  float3 newPos = currentPos + flowOffset + sharkheadOffset;
+
+  if (newPos.z < -.5)
+  {
+    newPos = GetLoopedPos(newPos, id.x);
+  }
+
+  _ParticleBuffer[id.x] = newPos;
+}

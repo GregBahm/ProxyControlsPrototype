@@ -14,39 +14,125 @@ public class SharkParticles : MonoBehaviour
     private Material particleMat;
 
     [SerializeField]
-    private int particlePointCount;
+    private int particleCount;
 
-    private BoxCollider boundsSource;
+    [SerializeField]
+    private float speed;
 
-    private int meshVertCount;
+    [SerializeField]
+    private Transform sharkHeadPosition;
+
+    [SerializeField]
+    private ComputeShader particleMover;
+
+    private BoxCollider _boundsSource;
+
+    private int _particleKernel;
+    private int _groupSize = 128;
+
+    private int _meshVertCount;
     private ComputeBuffer _meshBuffer;
-    private int meshStride = sizeof(float) * 3;
+    private int _meshStride = sizeof(float) * 3;
 
     private ComputeBuffer _particleBuffer;
-    private int particleStride = sizeof(float) * 3;
+    private int _particleStride = sizeof(float) * 3;
+
+    private ComputeBuffer _originalXYBuffer;
+    private int _originalXYStride = sizeof(float) * 2;
+
+    private ComputeBuffer _uvsOffsetsBuffer;
+    private int _uvsBufferStride = sizeof(float) * 2;
 
     void Start()
     {
-        meshVertCount = gridPointMesh.triangles.Length;
+        _particleKernel = particleMover.FindKernel("UpdateParticles");
+        _meshVertCount = gridPointMesh.triangles.Length;
         _meshBuffer = GetMeshBuffer();
-        _particleBuffer = GetParticleBuffer();
-        boundsSource = GetComponent<BoxCollider>();
+        Vector3[] randomPoints = GetRandomPoints();
+        _particleBuffer = GetParticleBuffer(randomPoints);
+        _originalXYBuffer = GetOriginalXYBuffer(randomPoints);
+        _uvsOffsetsBuffer = GetUvsBuffer();
+        _boundsSource = GetComponent<BoxCollider>();
+    }
+
+    private ComputeBuffer GetUvsBuffer()
+    {
+        ComputeBuffer ret = new ComputeBuffer(4, _uvsBufferStride);
+
+        Vector2[] data = new Vector2[]
+        {
+            new Vector2(0, 0),
+            new Vector2(0, 1f),
+            new Vector2(1f, 0),
+            new Vector2(1f, 1f),
+        };
+        ret.SetData(data);
+        return ret;
+    }
+
+    private ComputeBuffer GetOriginalXYBuffer(Vector3[] randomPoints)
+    {
+
+        Vector2[] data = new Vector2[particleCount];
+        for (int i = 0; i < particleCount; i++)
+        {
+            data[i] = new Vector2(randomPoints[i].x, randomPoints[i].y);
+        }
+        ComputeBuffer ret = new ComputeBuffer(particleCount, _originalXYStride);
+        ret.SetData(data);
+        return ret;
+    }
+
+    private Vector3[] GetRandomPoints()
+    {
+        Vector3[] data = new Vector3[particleCount];
+        for (int i = 0; i < particleCount; i++)
+        {
+            data[i] = new Vector3
+            (
+                GetRandomValue(),
+                GetRandomValue(),
+                GetRandomValue()
+            );
+        }
+        return data;
     }
 
     private void Update()
+    {
+        UpdateParticlePositions();
+        Draw();
+    }
+
+    private void UpdateParticlePositions()
+    {
+        particleMover.SetFloat("_DeltaTime", Time.deltaTime);
+        particleMover.SetFloat("_ParticleSpeed", speed);
+        particleMover.SetBuffer(_particleKernel, "_ParticleBuffer", _particleBuffer);
+        particleMover.SetBuffer(_particleKernel, "_OriginalXYBuffer", _originalXYBuffer);
+        
+        Vector3 localSharkHead = transform.InverseTransformPoint(sharkHeadPosition.position);
+        particleMover.SetVector("_SharkHeadPosition", localSharkHead);
+
+        int groups = Mathf.CeilToInt((float)particleCount / _groupSize);
+        particleMover.Dispatch(_particleKernel, groups, 1, 1);
+    }
+
+    private void Draw()
     {
         particleMat.SetBuffer("_MeshBuffer", _meshBuffer);
         particleMat.SetBuffer("_ParticleBuffer", _particleBuffer);
         particleMat.SetMatrix("_MasterTransform", transform.localToWorldMatrix);
         particleMat.SetFloat("_ParticleSize", particleSize);
-        Graphics.DrawProcedural(particleMat, boundsSource.bounds, MeshTopology.Triangles, meshVertCount, particlePointCount);
+        particleMat.SetBuffer("_UvOffsetsBuffer", _uvsOffsetsBuffer);
+        Graphics.DrawProcedural(particleMat, _boundsSource.bounds, MeshTopology.Triangles, _meshVertCount, particleCount);
     }
 
     private ComputeBuffer GetMeshBuffer()
     {
-        Vector3[] meshVerts = new Vector3[meshVertCount];
-        ComputeBuffer ret = new ComputeBuffer(meshVertCount, meshStride);
-        for (int i = 0; i < meshVertCount; i++)
+        Vector3[] meshVerts = new Vector3[_meshVertCount];
+        ComputeBuffer ret = new ComputeBuffer(_meshVertCount, _meshStride);
+        for (int i = 0; i < _meshVertCount; i++)
         {
             meshVerts[i] = gridPointMesh.vertices[gridPointMesh.triangles[i]];
         }
@@ -59,19 +145,9 @@ public class SharkParticles : MonoBehaviour
         return Random.value - .5f;
     }
 
-    private ComputeBuffer GetParticleBuffer()
+    private ComputeBuffer GetParticleBuffer(Vector3[] data)
     {
-        Vector3[] data = new Vector3[particlePointCount];
-        ComputeBuffer ret = new ComputeBuffer(particlePointCount, particleStride);
-        for (int i = 0; i < particlePointCount; i++)
-        {
-            data[i] = new Vector3
-            (
-                GetRandomValue(),
-                GetRandomValue(),
-                GetRandomValue()
-            );
-        }
+        ComputeBuffer ret = new ComputeBuffer(particleCount, _particleStride);
         ret.SetData(data);
         return ret;
     }
@@ -80,6 +156,8 @@ public class SharkParticles : MonoBehaviour
     {
         _meshBuffer.Dispose();
         _particleBuffer.Dispose();
+        _originalXYBuffer.Dispose();
+        _uvsOffsetsBuffer.Dispose();
     }
 
 }
