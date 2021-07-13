@@ -23,6 +23,12 @@ public class SharkParticles : MonoBehaviour
     private Transform sharkHeadPosition;
 
     [SerializeField]
+    private Color lightColor;
+
+    [SerializeField]
+    private float lightIntensity;
+
+    [SerializeField]
     private ComputeShader particleMover;
 
     private BoxCollider _boundsSource;
@@ -125,6 +131,10 @@ public class SharkParticles : MonoBehaviour
         particleMat.SetMatrix("_MasterTransform", transform.localToWorldMatrix);
         particleMat.SetFloat("_ParticleSize", particleSize);
         particleMat.SetBuffer("_UvOffsetsBuffer", _uvsOffsetsBuffer);
+        particleMat.SetFloat("_ParticlesCount", particleCount);
+
+        Shader.SetGlobalColor("_SharkLightColor", lightColor);
+        Shader.SetGlobalFloat("_SharkLightIntensity", lightIntensity);
         Graphics.DrawProcedural(particleMat, _boundsSource.bounds, MeshTopology.Triangles, _meshVertCount, particleCount);
     }
 

@@ -7,6 +7,8 @@
     SubShader
   {
     LOD 100
+    Blend SrcAlpha OneMinusSrcAlpha
+    ZWrite Off
 
     Pass
     {
@@ -37,8 +39,12 @@
       };
 
       float _ParticleSize;
+      float _ParticlesCount;
       float4x4 _MasterTransform;
       sampler2D _MainTex;
+
+      float _SharkLightIntensity;
+      float3 _SharkLightColor;
 
       float2 GetUvs(float2 quadPoint, uint inst)
       {
@@ -59,9 +65,15 @@
       float GetDepth(float4 worldPos)
       {
         float toCamera = length(worldPos - _WorldSpaceCameraPos);
-        float ret = 2 - toCamera * .5;
+        float ret = 1.5 - toCamera * .5;
         ret = saturate(ret);
         return ret;
+      }
+
+      float GetRandomSize(uint inst)
+      {
+        float val = (float)inst / _ParticlesCount;
+        return pow(val, .5);
       }
 
       v2f vert(input i)
@@ -77,7 +89,8 @@
         float lifeSpanFactor = GetLifespanFactor(basePos.z);
 
         float3 quadPoint = _MeshBuffer[i.id];
-        float3 finalQuadPoint = quadPoint * _ParticleSize * lifeSpanFactor;
+        float sizeFactor = GetRandomSize(i.inst);
+        float3 finalQuadPoint = quadPoint * _ParticleSize * lifeSpanFactor * sizeFactor;
         o.pos = mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, worldPos) + float4(finalQuadPoint, 0));
         o.uvs = GetUvs(quadPoint, i.inst);
         o.depth = GetDepth(worldPos);
@@ -86,12 +99,11 @@
 
       fixed4 frag(v2f i) : COLOR
       {
-        //return float4(i.uvs, 0, 1);
-        fixed alpha = tex2D(_MainTex, i.uvs).x;
-        clip(alpha - .5);
-        float4 ret = lerp(.5, float4(2, 2.5, 2.5, 1),  i.depth);
-        ret *= .3;
-        return ret;
+        fixed4 particleTex = tex2D(_MainTex, i.uvs);
+        float3 lighting = lerp(.5, _SharkLightColor * _SharkLightIntensity,  i.depth);
+        //lighting *= .5;
+        particleTex.rgb *= lighting * .5f;
+        return particleTex;
       }
       ENDCG
     }
