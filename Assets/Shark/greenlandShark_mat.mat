@@ -1,0 +1,132 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: greenlandShark_mat
+  m_Shader: {fileID: 4800000, guid: ccaa99a8e15e07845ae59c9f3321699b, type: 3}
+  m_ShaderKeywords: FOG RIM _ENABLERIMDELTADAMP_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AOTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: fd69622e17fb34b4dbbdf8ff81c728b4, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CausticTex:
+        m_Texture: {fileID: 2800000, guid: 75073f10c2d49ac49830a1fa26eeea7e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EdgeTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 59a43b2ff30160a458ff380e42eafaba, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SpecTex:
+        m_Texture: {fileID: 2800000, guid: d2a778c2be6820541949e8194c3f5384, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats:
+    - _AOTexFade: 1
+    - _AmbientOcclusion: 0
+    - _Brightness: 1
+    - _BumpScale: 1
+    - _CausticAmount: 1.5
+    - _CausticFalloff: 0
+    - _ClippingPlaneBorderWidth: 0.025
+    - _ClippingRadius: 0.025
+    - _ColorFade: 1
+    - _Cull: 2
+    - _Cutoff: 0.5
+    - _Desaturation: 0
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _EdgeFade: 0
+    - _EdgeTexture: 0
+    - _Enable1Bit: 0
+    - _EnableCaustics: 0
+    - _EnableClip: 0
+    - _EnableClipPlane: 0
+    - _EnableColorTweaks: 0
+    - _EnableColorize: 0
+    - _EnableEnableFog: 1
+    - _EnableNOAARim: 0
+    - _EnableRevClipPlane: 0
+    - _EnableRim: 1
+    - _EnableRimDeltaDamp: 1
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _Metallic: 0
+    - _Mode: 0
+    - _OcclusionStrength: 1
+    - _Parallax: 0.02
+    - _RimAmount: 0.5
+    - _RimFWCutoff: 0.75
+    - _RimLowCutoff: -1
+    - _RimPower: 3.67
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _TextureScale: 1
+    - _TriplanarBlendSharpness: 0.1
+    - _UVSec: 0
+    - _UseCHaosLighting: 0
+    - _VertexColor: 0
+    - _ZWrite: 1
+    m_Colors:
+    - _CausticColor: {r: 0.1607843, g: 0.5707072, b: 0.83137256, a: 1}
+    - _ClipPlane: {r: 0, g: 1, b: 0, a: 0}
+    - _ClipPlaneRadiusLocation: {r: 0, g: 0, b: 0, a: 0}
+    - _ClippingPlaneBorderColor: {r: 1, g: 0.2, b: 0, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Colorize: {r: 1, g: 1, b: 1, a: 1}
+    - _EdgeColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _RimColor: {r: 0.1607843, g: 0.5707072, b: 0.83137256, a: 1}
+  m_BuildTextureStacks: []

@@ -133,6 +133,8 @@ public class FluidSimulator : MonoBehaviour
 
     private void Update()
     {
+        SprayDye(new Vector3(.3f, .3f, .3f), Vector3.one, 1, Color.white);
+
         Advect();
         
         DrawVelocityBoundary();

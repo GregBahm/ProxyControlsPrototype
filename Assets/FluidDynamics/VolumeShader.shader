@@ -16,9 +16,9 @@
             //Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
 
             LOD 100
-            //Blend One OneMinusSrcAlpha
+            Blend One OneMinusSrcAlpha
             ZTest Always
-            ZWrite On
+            //ZWrite On
             //Fog { Mode off }
 
             Pass
