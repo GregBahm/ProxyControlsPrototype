@@ -5,22 +5,17 @@ using UnityEngine;
 
 public class HololensInputManager : MonoBehaviour
 {
-    public CurrentsDisplay Currents;
-
     public float Deadzone = .1f;
 
     private Transform translationHelper;
-    private Transform rotationHelper;
 
     public PinchDetector LeftPinchDetector;
-    public PinchDetector RightPinchDetector;
 
     public Transform TargetTransform;
 
     public ProxyButton MoveButton;
     public ProxyButton RotateButton;
     public ProxyButton ScaleButton;
-    public ProxyButton StartStopButton;
 
     public enum LeftHandToolMode
     {
@@ -34,7 +29,6 @@ public class HololensInputManager : MonoBehaviour
     private void Start()
     {
         translationHelper = new GameObject("Translation Helper").transform;
-        rotationHelper = new GameObject("Rotation Helper").transform;
         MoveButton.Clicked += OnMoveClicked;
         RotateButton.Clicked += OnRotateClicked;
         ScaleButton.Clicked += OnScaleClicked;
@@ -68,15 +62,6 @@ public class HololensInputManager : MonoBehaviour
     void Update()
     {
         UpdatePinchAndDrag();
-        UpdateCurrentHeight();
-    }
-
-    private void UpdateCurrentHeight()
-    {
-        if(RightPinchDetector.PinchBeginning)
-        {
-            //TODO: current height
-        }
     }
 
     private void UpdatePinchAndDrag()
