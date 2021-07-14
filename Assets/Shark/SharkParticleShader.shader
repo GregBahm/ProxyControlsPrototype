@@ -35,6 +35,7 @@
         float4 pos : SV_POSITION;
         float2 uvs : TEXCOORD2;
         float depth : TEXCOORD3;
+        float3 worldPos : TEXCOORD4;
         UNITY_VERTEX_OUTPUT_STEREO
       };
 
@@ -45,6 +46,7 @@
 
       float _SharkLightIntensity;
       float3 _SharkLightColor;
+      float3 _BlueLightPosition;
 
       float2 GetUvs(float2 quadPoint, uint inst)
       {
@@ -94,15 +96,20 @@
         o.pos = mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, worldPos) + float4(finalQuadPoint, 0));
         o.uvs = GetUvs(quadPoint, i.inst);
         o.depth = GetDepth(worldPos);
+        o.worldPos = worldPos;
         return o;
       }
 
       fixed4 frag(v2f i) : COLOR
       {
+
+        float3 toBlueLight =  i.worldPos - _BlueLightPosition;
+      float blueLightPower = 1 - length(toBlueLight);
+      blueLightPower = saturate(blueLightPower) * 4;
         fixed4 particleTex = tex2D(_MainTex, i.uvs);
         float3 lighting = lerp(.5, _SharkLightColor * _SharkLightIntensity,  i.depth);
-        //lighting *= .5;
         particleTex.rgb *= lighting * .5f;
+        particleTex.rgb += float3(0, .5, 1) * blueLightPower;
         return particleTex;
       }
       ENDCG

@@ -105,6 +105,7 @@
 
 			float _SharkLightIntensity;
 			float4 _SharkLightColor;
+			float3 _BlueLightPosition;
 
 			//Global Variables for Lighting
 			uniform half3 _CHAOSMainLightColor = half3(0.95, 0.92, 0.84);
@@ -336,7 +337,8 @@
 				half4 finalResult = float4(diff, 1.0);
 
 #ifdef AO
-				float4 withAO = finalResult * tex2D(_AOTex, i.uv2);
+				float ao = tex2D(_AOTex, i.uv2);
+				float4 withAO = finalResult * ao;
 				finalResult = lerp (finalResult, withAO, _AOTexFade);
 
 #endif
@@ -374,11 +376,17 @@
 				float softDot = theDot * .5 + .5;
 				float fakeLightShade = softDot * i.depth;
 
+				float3 toBlueLight = _BlueLightPosition - i.posWorld;
+				float blueLightLength = saturate(2 - length(toBlueLight));
+				float blueLightDot = dot(normalDirection, normalize(toBlueLight));
+				float blueLightPower = saturate(blueLightDot * blueLightLength * ao) * .5;
+
 				float specDot = 1 - theDot;
 				float specVal = spec * specDot * .5 * i.depth;
 				float4 litResult = fakeLightShade * finalResult * _SharkLightColor * _SharkLightIntensity;
 				finalResult = lerp(litResult, finalResult, .5);
 				finalResult += specVal;
+				finalResult.rgb += float3(0, .5, 1) * blueLightPower;
 				finalResult.a = 1;
 				return finalResult;
 			}

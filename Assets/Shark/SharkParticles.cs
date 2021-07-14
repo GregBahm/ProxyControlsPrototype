@@ -14,6 +14,9 @@ public class SharkParticles : MonoBehaviour
     private Material particleMat;
 
     [SerializeField]
+    private Material sharkMat;
+
+    [SerializeField]
     private int particleCount;
 
     [SerializeField]
@@ -21,6 +24,9 @@ public class SharkParticles : MonoBehaviour
 
     [SerializeField]
     private Transform sharkHeadPosition;
+
+    [SerializeField]
+    private Transform blueLightPosition;
 
     [SerializeField]
     private Color lightColor;
@@ -108,6 +114,10 @@ public class SharkParticles : MonoBehaviour
     {
         UpdateParticlePositions();
         Draw();
+
+        sharkMat.SetColor("_SharkLightColor", lightColor);
+        sharkMat.SetFloat("_SharkLightIntensity", lightIntensity);
+        sharkMat.SetVector("_BlueLightPosition", blueLightPosition.position);
     }
 
     private void UpdateParticlePositions()
@@ -133,8 +143,9 @@ public class SharkParticles : MonoBehaviour
         particleMat.SetBuffer("_UvOffsetsBuffer", _uvsOffsetsBuffer);
         particleMat.SetFloat("_ParticlesCount", particleCount);
 
-        Shader.SetGlobalColor("_SharkLightColor", lightColor);
-        Shader.SetGlobalFloat("_SharkLightIntensity", lightIntensity);
+        particleMat.SetColor("_SharkLightColor", lightColor);
+        particleMat.SetFloat("_SharkLightIntensity", lightIntensity);
+        particleMat.SetVector("_BlueLightPosition", blueLightPosition.position);
         Graphics.DrawProcedural(particleMat, _boundsSource.bounds, MeshTopology.Triangles, _meshVertCount, particleCount);
     }
 

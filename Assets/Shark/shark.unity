@@ -123,6 +123,36 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &459357729
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 459357730}
+  m_Layer: 0
+  m_Name: BlueLightPosition
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &459357730
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 459357729}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.852, z: 0.053}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 889844837}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &889844833
 GameObject:
   m_ObjectHideFlags: 0
@@ -157,9 +187,11 @@ MonoBehaviour:
   particleSize: 0.01
   gridPointMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   particleMat: {fileID: 2100000, guid: 8af8e97b1b0faca4db53c40845785ca3, type: 2}
+  sharkMat: {fileID: 2100000, guid: aa611cd8180fde34aa617c84d7a1714b, type: 2}
   particleCount: 500
   speed: 0.05
   sharkHeadPosition: {fileID: 1808935501}
+  blueLightPosition: {fileID: 459357730}
   lightColor: {r: 0.58917886, g: 0.6792453, b: 0.52224994, a: 1}
   lightIntensity: 4
   particleMover: {fileID: 7200000, guid: 6b2aa21eb0b25ff4cbb48077ace9e11a, type: 3}
@@ -194,7 +226,8 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.16127667, y: 0.275, z: -0.256}
   m_LocalScale: {x: 2.039732, y: 1.6646472, z: 6.0279865}
-  m_Children: []
+  m_Children:
+  - {fileID: 459357730}
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
