@@ -1,3 +1,4 @@
+using Jules;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ public class HeatMapHexController : MonoBehaviour
     {
         public Vector2 Position;
         public float Intensity;
+        public float Dispersion;
     }
 
     public const float MagicHexNumber = 1.73f; // Hex Ratio between width and height
@@ -32,11 +34,11 @@ public class HeatMapHexController : MonoBehaviour
     private ComputeBuffer _heatDataBuffer;
     private const int HEAT_POINTS = 16;
     private const int HEAT_DATA_STRIDE = sizeof(float) * 2 // Position
-        + sizeof(float); // intensity
+        + sizeof(float) // intensity
+        + sizeof(float); // dispersion
     private ComputeBuffer _argsBuffer;
     private ComputeBuffer _uvsBuffer;
     private const int UvsBufferStride = sizeof(float) * 2;
-
 
     private void Start()
     {

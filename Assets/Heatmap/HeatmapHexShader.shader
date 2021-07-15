@@ -9,7 +9,7 @@ Shader "Unlit/HeatmapHexShader"
     SubShader
     {
         LOD 100
-        Blend One OneMinusSrcAlpha
+        Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {
             CGPROGRAM
@@ -25,6 +25,7 @@ Shader "Unlit/HeatmapHexShader"
             {
               float2 position;
               float intensity;
+              float dispersion;
             };
 
             StructuredBuffer<HeatData> _HeatDataBuffer;
@@ -108,20 +109,30 @@ Shader "Unlit/HeatmapHexShader"
                 return o;
             }
 
-            float3 GetCol(float heat, float3 normal)
+            float3 GetCol(float heat, float3 normal, float3 objSpace)
             {
-              float topHeat = pow(saturate(heat), 2);
+              float topHeat = pow(saturate(heat), 3);
               float sideHeat = saturate(heat - .25);
-              float lutUv = lerp(sideHeat, topHeat, normal.y);
+              float topAlpha = saturate(normal.y + pow(objSpace.y + .5, 5));
+              float lutUv = lerp(sideHeat, topHeat, topAlpha);
               lutUv -= normal.x * .1;
-              return tex2D(_HeatLut, float2(lutUv, 0)).xyz;
+              float3 ret = tex2D(_HeatLut, float2(lutUv, 0)).xyz;
+              ret = lerp(pow(ret, 2) * .75, ret, normal.y);
+              ret = pow(ret, 2);
+              return ret;
+            }
+
+            float GetAlpha(float heat, float3 objSpace)
+            {
+              heat *= pow(objSpace.y + .5, 10) * .1 + 1;
+              float alpha = pow(heat, 2);
+              return saturate(alpha);
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-              float alpha = lerp(i.heat * .5, i.heat, i.normal.y);
-              float3 heatColor = GetCol(i.heat, i.normal);
-              heatColor = pow(heatColor, 1.25);
+              float alpha = GetAlpha(i.heat, i.objSpace);
+              float3 heatColor = GetCol(i.heat, i.normal, i.objSpace);
               return float4(heatColor, alpha);
             }
             ENDCG
