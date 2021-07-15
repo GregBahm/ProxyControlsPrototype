@@ -9,10 +9,9 @@ Shader "Unlit/HeatmapHexShader"
     SubShader
     {
         LOD 100
-
+        Blend One OneMinusSrcAlpha
         Pass
         {
-
             CGPROGRAM
             #define HEAT_POINTS 16
 
@@ -60,6 +59,7 @@ Shader "Unlit/HeatmapHexShader"
             float AccumulateHeat(float2 uvs, float2 heatPosition, float heatAmount)
             {
                 float dist = length(uvs - heatPosition) * _HeatFalloff;
+                dist = pow(dist, _HeatDecay);
                 float ret = 1 - dist;
                 ret *= heatAmount;
                 return max(0, ret);
@@ -86,9 +86,9 @@ Shader "Unlit/HeatmapHexShader"
                 float effectiveMargin = heat;
 
                 float3 newVert = v.vertex;
-                newVert.x *= _BoxWidth * effectiveMargin;
+                newVert.x *= _BoxWidth;
                 newVert.x += masterUvs.x - .5;
-                newVert.z *= _BoxDepth * effectiveMargin;
+                newVert.z *= _BoxDepth * 1.15f;
                 newVert.z += masterUvs.y - .5;
                 newVert.y += .5;
                 newVert.y *= pow(heat, 2) * sign(heat);
@@ -108,15 +108,21 @@ Shader "Unlit/HeatmapHexShader"
                 return o;
             }
 
+            float3 GetCol(float heat, float3 normal)
+            {
+              float topHeat = pow(saturate(heat), 2);
+              float sideHeat = saturate(heat - .25);
+              float lutUv = lerp(sideHeat, topHeat, normal.y);
+              lutUv -= normal.x * .1;
+              return tex2D(_HeatLut, float2(lutUv, 0)).xyz;
+            }
+
             fixed4 frag(v2f i) : SV_Target
             {
-              float heatAlpha = pow(i.objSpace.y + .5, i.heat * 2);
-              heatAlpha = saturate(heatAlpha) * .7 + saturate(i.normal.y) * .3;
-              float3 heatColor = tex2D(_HeatLut, float2(saturate(i.heat - .25), 0)).xyz * 1.5;
+              float alpha = lerp(i.heat * .5, i.heat, i.normal.y);
+              float3 heatColor = GetCol(i.heat, i.normal);
               heatColor = pow(heatColor, 1.25);
-              float3 sideColor = 0;
-              float3 ret = lerp(sideColor, heatColor, saturate(heatAlpha));
-              return saturate(float4(ret, i.heat));
+              return float4(heatColor, alpha);
             }
             ENDCG
         }

@@ -1025,12 +1025,12 @@ GameObject:
   - component: {fileID: 1238949746}
   - component: {fileID: 1238949745}
   m_Layer: 0
-  m_Name: MainScript
+  m_Name: HololensUI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1238949743
 Transform:
   m_ObjectHideFlags: 0
@@ -1313,6 +1313,8 @@ MonoBehaviour:
   dyeDissipation: 0.99
   velocityDissipation: 0.999
   timeStep: 0.01
+  dyeSprayerScript: {fileID: 1764591062}
+  reset: 0
   displayTexture: 0
   displayCubeMat: {fileID: 2100000, guid: bd54c0ee91b87da4199de453641610bf, type: 2}
   fluidSimulationShader: {fileID: 7200000, guid: fec093ce7d2b59a4285949893e5413a1, type: 3}
@@ -1333,7 +1335,7 @@ Transform:
   m_GameObject: {fileID: 1899616872}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.4313, y: 0.4313, z: 0.4313}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children:
   - {fileID: 202963054}
   - {fileID: 915722709}
@@ -1482,6 +1484,79 @@ LightingSettings:
   m_PVRFilteringAtrousPositionSigmaDirect: 0.5
   m_PVRFilteringAtrousPositionSigmaIndirect: 2
   m_PVRFilteringAtrousPositionSigmaAO: 1
+--- !u!1001 &2024780840
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_RootOrder
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.47
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: fd491bce442202b45b84a617e04d0674, type: 2}
+    - target: {fileID: 919132149155446097, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
+      propertyPath: m_Name
+      value: FakeHeightMapMesh
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
 --- !u!4 &2087497085 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1906169691975685514, guid: 9c49715ac2c812a4c8802fd63f970942, type: 3}

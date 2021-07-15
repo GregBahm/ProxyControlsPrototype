@@ -13,13 +13,15 @@
     }
         SubShader
         {
-            //Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
+            Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
 
             LOD 100
             Blend One OneMinusSrcAlpha
-            ZTest Always
-            //ZWrite On
-            //Fog { Mode off }
+            // Cull Front
+            Cull Back
+            ZTest LEqual
+            ZWrite Off
+            Fog { Mode off }
 
             Pass
             {
@@ -27,9 +29,10 @@
                 #pragma vertex vert
                 #pragma fragment frag
                 #pragma multi_compile ___ FOCUS_PLANE_ON
-                #pragma multi_compile ____ FOCUS_PLANE_HARD_CUTOFF_ON 
+                #pragma multi_compile ____ FOCUS_PLANE_HARD_CUTOFF_ON
 
                 #include "UnityCG.cginc"
+                //#include "Packages/com.microsoft.edt.lib.terrain/Shaders/ClippingVolume-MapsSDK.cginc" // TODO: Put this back in when you reimport to Jules
 
                 // Maximum amount of raymarching samples
                 #define MAX_STEP_COUNT 128
@@ -48,6 +51,7 @@
                     fixed4 vertex : SV_POSITION;
                     fixed3 ray_o : TEXCOORD1; // ray origin
                     fixed3 ray_d : TEXCOORD2; // ray direction
+                    float3 worldPosition : TEXCOORD3;
                     UNITY_VERTEX_INPUT_INSTANCE_ID
                     UNITY_VERTEX_OUTPUT_STEREO
                 };
@@ -78,6 +82,7 @@
                     o.ray_d = -ObjSpaceViewDir(v.vertex);
                     o.ray_o = v.vertex; // v.vertex.xyz - o.ray_d;
                     o.vertex = UnityObjectToClipPos(v.vertex);
+                    o.worldPosition = mul(unity_ObjectToWorld, v.vertex).xyz;
 
                     return o;
                 }
@@ -122,6 +127,28 @@
                     return dot(plane.xyz, pos) + plane.w;
                 }
 
+                fixed4 DataToColor(fixed3 samplePosition, fixed4 focusPlane)
+                {
+                    float dist = abs(DistanceFromPlane(samplePosition, focusPlane));
+
+                    samplePosition = samplePosition + 0.5f;
+                    fixed4 sampledData = tex3D(_MainTex, samplePosition);
+
+                    float data = sampledData.r;
+                    float alpha = sampledData.g;
+#if FOCUS_PLANE_SOFT_CUTOFF_ON
+                    float t = 1.0 - InverseLerp(0, _FocusDropOff, dist);
+                    alpha *= t;
+#else
+                    alpha *= step(dist, _FocusDropOff);
+#endif
+
+                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
+                    sampledColor.a *= _Alpha;
+
+                    return sampledColor;
+                }
+
                 fixed4 DataToColor(fixed3 samplePosition)
                 {
                     samplePosition = samplePosition + 0.5f;
@@ -132,8 +159,7 @@
                     float data = sampledData.r;
                     float alpha = sampledData.g;
 
-                    data = saturate(data);
-                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, 0);
+                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
                     sampledColor.a *= _Alpha;
 
                     return sampledColor;
@@ -158,9 +184,11 @@
 #endif
                 }
 
-                frag_out frag(v2f i) // : SV_Target
-                //fixed4 frag(v2f i) : SV_Target
+                 // frag_out frag(v2f i) // : SV_Target
+                fixed4 frag(v2f i) : SV_Target
                 {
+                    //ClipToVolume(i.worldPosition); // TODO: Put this back in when you reimport to Jules
+
                     // Start raymarching at the front surface of the object
                     fixed3 rayOrigin = i.ray_o;
 
@@ -168,6 +196,11 @@
                     // as it's linearly interpolated, and would need to be renormalized anyway
                     fixed3 rayDirection = normalize(i.ray_d);
 
+#if FOCUS_PLANE_ON
+                    // Get the focus plane in object space
+                    // Matrix4x4.TransformPlane: github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Matrix4x4.cs
+                    fixed4 objPlane = mul(_FocusPlane, transpose(unity_ObjectToWorld));
+#endif
                     // Raymarch through object space
                     fixed3 samplePosition = rayOrigin;
                     fixed4 color = fixed4(0, 0, 0, 0);
@@ -182,31 +215,29 @@
 
                         if (max(absSample.x, max(absSample.y, absSample.z)) < 0.5f + EPSILON)
                         {
+#if FOCUS_PLANE_ON
+                            color = BlendUnder(color, DataToColor(samplePosition, objPlane));
+#else
                             color = BlendUnder(color, DataToColor(samplePosition));
-                            //color = max(color, DataToColor(samplePosition));
-                            iDepth = i;
+#endif
+                            // color = max(color, DataToColor(samplePosition));
+                            // iDepth = i;
                             samplePosition += rayDirection * stepSize;
                         }
                     }
-                // if we want to write out distance, this is how we'd do it.
+                /* // if we want to write out distance, this is how we'd do it.
                   frag_out output;
 
                   output.color = color;
 
                   if (iDepth != 0 && color.a != 0)
-                  {
-                    //output.depth = 1;
-                    output.depth = localToDepth(rayOrigin + rayDirection * (iDepth * stepSize) - float3(0.5f, 0.5f, 0.5f));
-                  }
+                      output.depth = localToDepth(rayOrigin + rayDirection * (iDepth * stepSize) - float3(0.5f, 0.5f, 0.5f));
                   else
-                  {
-                    //output.depth = 1;
-                    output.depth = 0;
-                  }
-                  //output.color.rgb = output.depth * 100;
-                  return output;
+                      output.depth = 0;
 
-                  //return color;
+                  return output;*/
+
+                  return color;
               }
               ENDCG
           }
