@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class HeatMapHexController : MonoBehaviour
 {
@@ -31,6 +32,19 @@ public class HeatMapHexController : MonoBehaviour
     [SerializeField]
     private BoxCollider mapTransform;
 
+    [SerializeField]
+    private Material compositionMat;
+
+    [SerializeField]
+    private DrawMode drawMode;
+
+    public enum DrawMode
+    {
+        DrawOpacity, // Draws the heatmap as opaque, for debugging
+        DrawAlpha, // Draws the heatmap's alpha, for debugging
+        Composite // Draws the opaque effect, the alpha, and then combines the opaque effect using the alpha effect in a post process effect
+    }
+
     private ComputeBuffer _heatDataBuffer;
     private const int HEAT_POINTS = 16;
     private const int HEAT_DATA_STRIDE = sizeof(float) * 2 // Position
@@ -40,12 +54,16 @@ public class HeatMapHexController : MonoBehaviour
     private ComputeBuffer _uvsBuffer;
     private const int UvsBufferStride = sizeof(float) * 2;
 
+    private CommandBuffer compositeCommand;
+
     private void Start()
     {
         _gridColumns = Mathf.FloorToInt(gridRows * 1.15f);
         _argsBuffer = GetArgsBuffer();
         _uvsBuffer = GetUvsBuffer();
         _heatDataBuffer = new ComputeBuffer(HEAT_POINTS, HEAT_DATA_STRIDE);
+
+        compositeCommand = SetupCommandBuffer();
     }
 
     public void SetHeatData(HeatData[] data)
@@ -119,6 +137,48 @@ public class HeatMapHexController : MonoBehaviour
         hexMeshMat.SetBuffer("_UvsBuffer", _uvsBuffer);
         hexMeshMat.SetMatrix("_MasterTransform", mapTransform.transform.localToWorldMatrix);
         hexMeshMat.SetBuffer("_HeatDataBuffer", _heatDataBuffer);
-        Graphics.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, mapTransform.bounds, _argsBuffer);
+
+
+        hexMeshMat.SetFloat("_DrawAlpha", drawMode == DrawMode.DrawAlpha ? 1 : 0);
+        switch (drawMode)
+        {
+            case DrawMode.DrawOpacity:
+            case DrawMode.DrawAlpha:
+                Graphics.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, mapTransform.bounds, _argsBuffer);
+                break;
+            case DrawMode.Composite:
+            default:
+                Graphics.ExecuteCommandBuffer(compositeCommand);
+                break;
+        }
+    }
+
+    // We want each hexagon to be opaque to the rest of the hexagons, but transparent to everything else
+    // To acheive this, we render opaque hexagons to a temporary texture, and then render an alpha map, and then composite the opaque hexagons, using the alpha map, to the scene
+    private CommandBuffer SetupCommandBuffer()
+    {
+        CommandBuffer ret = new CommandBuffer();
+        ret.name = "Heatmap";
+
+        int heatmapOpaqueId = Shader.PropertyToID("_HeatmapOpaque");
+        int heatmapAlphaId = Shader.PropertyToID("_HeatmapAlpha");
+
+        ret.GetTemporaryRT(heatmapAlphaId, -1, -1, 0, FilterMode.Bilinear);
+        ret.GetTemporaryRT(heatmapOpaqueId, -1, -1, 0, FilterMode.Bilinear);
+
+        RenderTargetIdentifier opaqueTarget = new RenderTargetIdentifier(heatmapOpaqueId);
+        ret.SetRenderTarget(opaqueTarget);
+        ret.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, 0, _argsBuffer);
+
+        RenderTargetIdentifier heatmapAlphaTarget = new RenderTargetIdentifier(heatmapAlphaId);
+        ret.SetRenderTarget(heatmapAlphaTarget);
+        ret.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, 1, _argsBuffer);
+
+        ret.Blit(heatmapOpaqueId, BuiltinRenderTextureType.CameraTarget, compositionMat);
+
+        ret.ReleaseTemporaryRT(heatmapAlphaId);
+        ret.ReleaseTemporaryRT(heatmapOpaqueId);
+
+        return ret;
     }
 }

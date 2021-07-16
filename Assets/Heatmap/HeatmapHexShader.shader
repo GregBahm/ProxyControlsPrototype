@@ -9,7 +9,7 @@ Shader "Unlit/HeatmapHexShader"
     SubShader
     {
         LOD 100
-        Blend SrcAlpha OneMinusSrcAlpha
+        //Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {
             CGPROGRAM
@@ -45,8 +45,8 @@ Shader "Unlit/HeatmapHexShader"
 
             struct v2f
             {
-                float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
+                float2 uv : TEXCOORD0;
                 float heat : TEXCOORD1;
                 float3 normal : NORMAL;
                 float3 objSpace : TEXCOORD2;
@@ -55,7 +55,7 @@ Shader "Unlit/HeatmapHexShader"
 
             sampler2D _HeatLut;
             float4x4 _MasterTransform;
-            float _Margin;
+            float _DrawAlpha;
 
             float AccumulateHeat(float2 uvs, float2 heatPosition, float heatAmount)
             {
@@ -76,6 +76,15 @@ Shader "Unlit/HeatmapHexShader"
                   heat += heatContribution * heatContribution;
                 }
                 return sqrt(heat);
+            }
+
+            float GetWire(float isTop, float2 uv)
+            {
+                float2 toUv = (uv - .5) * 2;
+                toUv = abs(toUv);
+                toUv = pow(toUv, 10);
+                float toSide = sqrt(toUv.x + toUv.y);
+                return toSide;
             }
 
             v2f vert (appdata v, uint instanceID : SV_InstanceID)
@@ -102,10 +111,10 @@ Shader "Unlit/HeatmapHexShader"
 
                 float4 worldPos = mul(_MasterTransform, float4(newVert, 1));
                 o.vertex = mul(UNITY_MATRIX_VP, worldPos);
-                o.uv = v.uv;
                 o.heat = pow(heat, .5);
                 o.objSpace = v.vertex;
                 o.normal = v.normal;
+                o.uv = v.uv;
                 return o;
             }
 
@@ -131,6 +140,9 @@ Shader "Unlit/HeatmapHexShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
+              float wire = GetWire(i.normal.y, i.uv);
+            //return wire;
+              //return float4(1, 1, 1, wire);
               float alpha = GetAlpha(i.heat, i.objSpace);
               float3 heatColor = GetCol(i.heat, i.normal, i.objSpace);
               return float4(heatColor, alpha);
