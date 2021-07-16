@@ -131,11 +131,9 @@
 
 			uniform float4 _Color;
 
-#ifdef AO
 		uniform sampler2D _AOTex;
 		uniform float4 _AOTex_ST;
 		half _AOTexFade;
-#endif
 
 #ifdef COLORIZE
 	half4 _Colorize;
@@ -222,9 +220,7 @@
 				float4 worldPos = mul(unity_ObjectToWorld, v.vertex);
 				o.posWorld = worldPos.xyz;
 				o.uv = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
-#ifdef AO
 				o.uv2 = UnityStereoScreenSpaceUVAdjust(v.uv2, _AOTex_ST);
-#endif
 				o.pos = UnityObjectToClipPos(v.vertex);
 
 				//o.wNormal = normalize(mul(float4(v.normal, 0.0), unity_WorldToObject).xyz);
@@ -336,12 +332,9 @@
 				//half4 finalResult = float4(diff + specTex, 1.0);
 				half4 finalResult = float4(diff, 1.0);
 
-#ifdef AO
 				float ao = tex2D(_AOTex, i.uv2);
 				float4 withAO = finalResult * ao;
 				finalResult = lerp (finalResult, withAO, _AOTexFade);
-
-#endif
 
 #ifdef COLORTWEAKS
 				half3 lum = dot(finalResult.rgb, float3(0.22, 0.707, 0.071));

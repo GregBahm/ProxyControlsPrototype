@@ -64,6 +64,7 @@ public class HeatMapHexController : MonoBehaviour
         _heatDataBuffer = new ComputeBuffer(HEAT_POINTS, HEAT_DATA_STRIDE);
 
         compositeCommand = SetupCommandBuffer();
+        Camera.main.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, compositeCommand);
     }
 
     public void SetHeatData(HeatData[] data)
@@ -120,7 +121,18 @@ public class HeatMapHexController : MonoBehaviour
 
     private void Update()
     {
+        SetShaderProperties();
         DrawCubes();
+    }
+
+    private void SetShaderProperties()
+    {
+        hexMeshMat.SetFloat("_BoxWidth", 1f / gridRows);
+        hexMeshMat.SetFloat("_BoxDepth", 1f / _gridColumns);
+        hexMeshMat.SetBuffer("_UvsBuffer", _uvsBuffer);
+        hexMeshMat.SetMatrix("_MasterTransform", mapTransform.transform.localToWorldMatrix);
+        hexMeshMat.SetBuffer("_HeatDataBuffer", _heatDataBuffer);
+        hexMeshMat.SetFloat("_DrawAlpha", drawMode == DrawMode.DrawAlpha ? 1 : 0);
     }
 
     private void OnDestroy()
@@ -132,24 +144,9 @@ public class HeatMapHexController : MonoBehaviour
 
     private void DrawCubes()
     {
-        hexMeshMat.SetFloat("_BoxWidth", 1f / gridRows);
-        hexMeshMat.SetFloat("_BoxDepth", 1f / _gridColumns);
-        hexMeshMat.SetBuffer("_UvsBuffer", _uvsBuffer);
-        hexMeshMat.SetMatrix("_MasterTransform", mapTransform.transform.localToWorldMatrix);
-        hexMeshMat.SetBuffer("_HeatDataBuffer", _heatDataBuffer);
-
-
-        hexMeshMat.SetFloat("_DrawAlpha", drawMode == DrawMode.DrawAlpha ? 1 : 0);
-        switch (drawMode)
+        if(drawMode == DrawMode.DrawAlpha || drawMode == DrawMode.DrawOpacity)
         {
-            case DrawMode.DrawOpacity:
-            case DrawMode.DrawAlpha:
-                Graphics.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, mapTransform.bounds, _argsBuffer);
-                break;
-            case DrawMode.Composite:
-            default:
-                Graphics.ExecuteCommandBuffer(compositeCommand);
-                break;
+            Graphics.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, mapTransform.bounds, _argsBuffer);
         }
     }
 
@@ -160,24 +157,16 @@ public class HeatMapHexController : MonoBehaviour
         CommandBuffer ret = new CommandBuffer();
         ret.name = "Heatmap";
 
-        int heatmapOpaqueId = Shader.PropertyToID("_HeatmapOpaque");
-        int heatmapAlphaId = Shader.PropertyToID("_HeatmapAlpha");
+        int heatmapTextureId = Shader.PropertyToID("_Heatmap");
 
-        ret.GetTemporaryRT(heatmapAlphaId, -1, -1, 0, FilterMode.Bilinear);
-        ret.GetTemporaryRT(heatmapOpaqueId, -1, -1, 0, FilterMode.Bilinear);
+        ret.GetTemporaryRT(heatmapTextureId, -1, -1, 24, FilterMode.Bilinear);
 
-        RenderTargetIdentifier opaqueTarget = new RenderTargetIdentifier(heatmapOpaqueId);
+        RenderTargetIdentifier opaqueTarget = new RenderTargetIdentifier(heatmapTextureId);
         ret.SetRenderTarget(opaqueTarget);
+        ret.ClearRenderTarget(true, true, Color.black);
         ret.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, 0, _argsBuffer);
-
-        RenderTargetIdentifier heatmapAlphaTarget = new RenderTargetIdentifier(heatmapAlphaId);
-        ret.SetRenderTarget(heatmapAlphaTarget);
-        ret.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, 1, _argsBuffer);
-
-        ret.Blit(heatmapOpaqueId, BuiltinRenderTextureType.CameraTarget, compositionMat);
-
-        ret.ReleaseTemporaryRT(heatmapAlphaId);
-        ret.ReleaseTemporaryRT(heatmapOpaqueId);
+        ret.SetGlobalTexture("_Heatmap", heatmapTextureId);
+        ret.ReleaseTemporaryRT(heatmapTextureId);
 
         return ret;
     }

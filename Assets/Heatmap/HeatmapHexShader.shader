@@ -78,15 +78,6 @@ Shader "Unlit/HeatmapHexShader"
                 return sqrt(heat);
             }
 
-            float GetWire(float isTop, float2 uv)
-            {
-                float2 toUv = (uv - .5) * 2;
-                toUv = abs(toUv);
-                toUv = pow(toUv, 10);
-                float toSide = sqrt(toUv.x + toUv.y);
-                return toSide;
-            }
-
             v2f vert (appdata v, uint instanceID : SV_InstanceID)
             {
                 float2 masterUvs = _UvsBuffer[instanceID];
@@ -140,12 +131,10 @@ Shader "Unlit/HeatmapHexShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
-              float wire = GetWire(i.normal.y, i.uv);
-            //return wire;
-              //return float4(1, 1, 1, wire);
               float alpha = GetAlpha(i.heat, i.objSpace);
               float3 heatColor = GetCol(i.heat, i.normal, i.objSpace);
-              return float4(heatColor, alpha);
+              heatColor = lerp(heatColor, alpha, _DrawAlpha);
+              return float4(heatColor, 1 - alpha);
             }
             ENDCG
         }
