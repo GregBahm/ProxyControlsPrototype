@@ -2,6 +2,7 @@ using Jules;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -33,9 +34,6 @@ public class HeatMapHexController : MonoBehaviour
     private BoxCollider mapTransform;
 
     [SerializeField]
-    private Material compositionMat;
-
-    [SerializeField]
     private DrawMode drawMode;
 
     public enum DrawMode
@@ -46,15 +44,17 @@ public class HeatMapHexController : MonoBehaviour
     }
 
     private ComputeBuffer _heatDataBuffer;
+    private ComputeBuffer _remapBuffer;
+    private ComputeBuffer _argsBuffer;
+    private ComputeBuffer _uvsBuffer;
     private const int HEAT_POINTS = 16;
     private const int HEAT_DATA_STRIDE = sizeof(float) * 2 // Position
         + sizeof(float) // intensity
         + sizeof(float); // dispersion
-    private ComputeBuffer _argsBuffer;
-    private ComputeBuffer _uvsBuffer;
-    private const int UvsBufferStride = sizeof(float) * 2;
+    private const int UVS_BUFFER_STRIDE = sizeof(float) * 2;
+    private const int REMAP_BUFFER_STRIDE = sizeof(int);
 
-    private CommandBuffer compositeCommand;
+    private HexSorter[] hexTransforms;
 
     private void Start()
     {
@@ -62,11 +62,10 @@ public class HeatMapHexController : MonoBehaviour
         _argsBuffer = GetArgsBuffer();
         _uvsBuffer = GetUvsBuffer();
         _heatDataBuffer = new ComputeBuffer(HEAT_POINTS, HEAT_DATA_STRIDE);
+        _remapBuffer = new ComputeBuffer(gridRows * _gridColumns, REMAP_BUFFER_STRIDE);
 
-        compositeCommand = SetupCommandBuffer();
-        Camera.main.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, compositeCommand);
+        hexTransforms = CreateHexTransforms().ToArray();
     }
-
     public void SetHeatData(HeatData[] data)
     {
         HeatData[] sanitizedData = new HeatData[HEAT_POINTS];
@@ -91,7 +90,7 @@ public class HeatMapHexController : MonoBehaviour
 
     private ComputeBuffer GetUvsBuffer()
     {
-        ComputeBuffer ret = new ComputeBuffer(gridRows * _gridColumns, UvsBufferStride);
+        ComputeBuffer ret = new ComputeBuffer(gridRows * _gridColumns, UVS_BUFFER_STRIDE);
         Vector2[] data = new Vector2[gridRows * _gridColumns];
         int i = 0;
         for (int x = 0; x < gridRows; x++)
@@ -130,6 +129,7 @@ public class HeatMapHexController : MonoBehaviour
         hexMeshMat.SetFloat("_BoxWidth", 1f / gridRows);
         hexMeshMat.SetFloat("_BoxDepth", 1f / _gridColumns);
         hexMeshMat.SetBuffer("_UvsBuffer", _uvsBuffer);
+        hexMeshMat.SetBuffer("_RemapBuffer", _remapBuffer);
         hexMeshMat.SetMatrix("_MasterTransform", mapTransform.transform.localToWorldMatrix);
         hexMeshMat.SetBuffer("_HeatDataBuffer", _heatDataBuffer);
         hexMeshMat.SetFloat("_DrawAlpha", drawMode == DrawMode.DrawAlpha ? 1 : 0);
@@ -140,34 +140,62 @@ public class HeatMapHexController : MonoBehaviour
         _argsBuffer.Dispose();
         _uvsBuffer.Dispose();
         _heatDataBuffer.Dispose();
+        _remapBuffer.Dispose();
     }
 
     private void DrawCubes()
     {
         if(drawMode == DrawMode.DrawAlpha || drawMode == DrawMode.DrawOpacity)
         {
-            Graphics.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, mapTransform.bounds, _argsBuffer);
+            HexSorter[] sortedHexes = GetMatrixTransformations();
+            int[] remap = sortedHexes.Select(item => item.Index).ToArray();
+            _remapBuffer.SetData(remap);
+            Graphics.DrawMeshInstanced(hexMesh, 0, hexMeshMat, sortedHexes.Select(item => item.Matrix).ToArray());
         }
     }
 
-    // We want each hexagon to be opaque to the rest of the hexagons, but transparent to everything else
-    // To acheive this, we render opaque hexagons to a temporary texture, and then render an alpha map, and then composite the opaque hexagons, using the alpha map, to the scene
-    private CommandBuffer SetupCommandBuffer()
+    private struct HexSorter
     {
-        CommandBuffer ret = new CommandBuffer();
-        ret.name = "Heatmap";
+        public int Index { get; }
+        public Matrix4x4 Matrix { get; }
 
-        int heatmapTextureId = Shader.PropertyToID("_Heatmap");
+        public Vector3 LocalPos { get; }
 
-        ret.GetTemporaryRT(heatmapTextureId, -1, -1, 24, FilterMode.Bilinear);
+        public HexSorter(int index, Matrix4x4 matrix, Vector3 localPos)
+        {
+            Index = index;
+            Matrix = matrix;
+            LocalPos = localPos;
+        }
+    }
 
-        RenderTargetIdentifier opaqueTarget = new RenderTargetIdentifier(heatmapTextureId);
-        ret.SetRenderTarget(opaqueTarget);
-        ret.ClearRenderTarget(true, true, Color.black);
-        ret.DrawMeshInstancedIndirect(hexMesh, 0, hexMeshMat, 0, _argsBuffer);
-        ret.SetGlobalTexture("_Heatmap", heatmapTextureId);
-        ret.ReleaseTemporaryRT(heatmapTextureId);
+    private HexSorter[] GetMatrixTransformations()
+    {
+        Vector3 cameraInMapSpace = mapTransform.transform.InverseTransformPoint(Camera.main.transform.position);
+        return hexTransforms.OrderBy(item => (item.LocalPos - cameraInMapSpace).magnitude).ToArray();
+    }
 
-        return ret;
+    private HexSorter CreateHexTransform(Transform helperTransfom, int x, int y, int index)
+    {
+        Vector2 cellPos = GetHexCellPosition(x, y);
+
+        helperTransfom.localPosition = new Vector3(cellPos.x - .5f, 0, cellPos.y - .5f);
+        helperTransfom.localScale = new Vector3(1f / gridRows, 1, (1f / _gridColumns) * 1.15f);
+        return new HexSorter(index, helperTransfom.localToWorldMatrix, helperTransfom.localPosition);
+    }
+
+    private IEnumerable<HexSorter> CreateHexTransforms()
+    {
+        Transform helperTransfom = new GameObject("HexHeatmapHelper").transform;
+        helperTransfom.parent = mapTransform.transform;
+        int index = 0;
+        for (int x = 0; x < gridRows; x++)
+        {
+            for (int y = 0; y < _gridColumns; y++)
+            {
+                yield return CreateHexTransform(helperTransfom, x, y, index);
+                index++;
+            }
+        }
     }
 }

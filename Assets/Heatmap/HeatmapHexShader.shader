@@ -9,7 +9,7 @@ Shader "Unlit/HeatmapHexShader"
     SubShader
     {
         LOD 100
-        //Blend SrcAlpha OneMinusSrcAlpha
+        Blend SrcAlpha OneMinusSrcAlpha
         Pass
         {
             CGPROGRAM
@@ -17,6 +17,7 @@ Shader "Unlit/HeatmapHexShader"
 
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile_instancing
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
 
             #include "UnityCG.cginc"
@@ -29,6 +30,7 @@ Shader "Unlit/HeatmapHexShader"
             };
 
             StructuredBuffer<HeatData> _HeatDataBuffer;
+            StructuredBuffer<int> _RemapBuffer;
             StructuredBuffer<float2> _UvsBuffer;
             float _BoxWidth;
             float _BoxDepth;
@@ -78,21 +80,23 @@ Shader "Unlit/HeatmapHexShader"
                 return sqrt(heat);
             }
 
+            float2 GetUvs(uint instanceID)
+            {
+                uint mappedVal = _RemapBuffer[instanceID];
+                return _UvsBuffer[mappedVal];
+            }
+
             v2f vert (appdata v, uint instanceID : SV_InstanceID)
             {
-                float2 masterUvs = _UvsBuffer[instanceID];
+                float2 masterUvs = GetUvs(instanceID);
 
                 float heat = GetHeat(masterUvs);
 
                 float effectiveMargin = heat;
 
                 float3 newVert = v.vertex;
-                newVert.x *= _BoxWidth;
-                newVert.x += masterUvs.x - .5;
-                newVert.z *= _BoxDepth * 1.15f;
-                newVert.z += masterUvs.y - .5;
                 newVert.y += .5;
-                newVert.y *= pow(heat, 2) * sign(heat);
+                newVert.y *= heat;
                 newVert.y -= .5;
 
                 v2f o;
@@ -100,12 +104,11 @@ Shader "Unlit/HeatmapHexShader"
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-                float4 worldPos = mul(_MasterTransform, float4(newVert, 1));
-                o.vertex = mul(UNITY_MATRIX_VP, worldPos);
+                o.vertex = UnityObjectToClipPos(newVert);
                 o.heat = pow(heat, .5);
                 o.objSpace = v.vertex;
                 o.normal = v.normal;
-                o.uv = v.uv;
+                o.uv = masterUvs;
                 return o;
             }
 
@@ -134,7 +137,7 @@ Shader "Unlit/HeatmapHexShader"
               float alpha = GetAlpha(i.heat, i.objSpace);
               float3 heatColor = GetCol(i.heat, i.normal, i.objSpace);
               heatColor = lerp(heatColor, alpha, _DrawAlpha);
-              return float4(heatColor, 1 - alpha);
+              return float4(heatColor, alpha);
             }
             ENDCG
         }
