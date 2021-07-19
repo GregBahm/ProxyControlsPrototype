@@ -162,7 +162,7 @@ void DrawPressureBoundary(uint3 id : SV_DispatchThreadID)
 
     float pressureValue = ReadPressure.SampleLevel(samplerReadPressure, (index + offset) / _Resolution, 0).x;
     
-    _Pressure[index] = float4(pressureValue * _BoundaryValue, 0, 0, 1);
+    //_Pressure[index] = float4(pressureValue * _BoundaryValue, 0, 0, 1);
 } 
 
 [numthreads(16, 1, 1)]
@@ -171,7 +171,7 @@ void DrawVelocityBoundary(uint3 id : SV_DispatchThreadID)
     uint3 index = int3(_BoundaryData[id.x].pixelCoords);
     int3 offset = int3(_BoundaryData[id.x].insideOffset);
 
-    _Velocity[index] = float4(0, 0, 0, 1);
+    //_Velocity[index] = float4(0, 0, 0, 1);
 }
 
 [numthreads(16, 16, 1)]

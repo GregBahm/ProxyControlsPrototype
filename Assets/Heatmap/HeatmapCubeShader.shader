@@ -11,6 +11,7 @@ Shader "Unlit/HeatmapCubeShader"
     {
         Tags { "RenderType"="Opaque" }
         LOD 100
+        Blend OneMinusDstColor One
 
         Pass
         {
@@ -56,9 +57,9 @@ Shader "Unlit/HeatmapCubeShader"
                 float2 masterUvs = _UvsBuffer[instanceID];
                 float2 heatBUvs = TRANSFORM_TEX(masterUvs, _HeatSourceB);
 
-                fixed heatA = tex2Dlod(_HeatSourceA, float4(masterUvs, 0, 0)) * (_CosTime.w + .5);
-                fixed heatB = tex2Dlod(_HeatSourceB, float4(heatBUvs, 0, 0)) * (cos(_Time.w * 1.3) + 1);
-                float heat = (heatA + heatB) * .5;
+                fixed heatA = tex2Dlod(_HeatSourceA, float4(masterUvs, 0, 0))* (_CosTime.w + .5);
+                fixed heatB = tex2Dlod(_HeatSourceB, float4(heatBUvs, 0, 0))* (cos(_Time.w * 1.3) + 1);
+                float heat = (heatA + heatB) * 2;
 
                 float3 newVert = v.vertex;
                 newVert.x *= _BoxWidth * _Margin;
