@@ -19,6 +19,9 @@ namespace Jules.FluidDynamics
         [SerializeField]
         private bool reset;
 
+        [SerializeField]
+        private Texture2D heightMap;
+
         bool paused;
 
         private static readonly Vector3 NumThreads = new Vector3(16, 16, 1);
@@ -91,6 +94,8 @@ namespace Jules.FluidDynamics
         private int _velocityDissipationId;
         private int _timestepId;
 
+        private int _heightmapId;
+
         private const int JacobiIterations = 50;
 
         private void Start()
@@ -120,6 +125,7 @@ namespace Jules.FluidDynamics
             _boundaryValueId = Shader.PropertyToID("_BoundaryValue");
             _boundaryDataBufferId = Shader.PropertyToID("_BoundaryData");
             _dyeColorId = Shader.PropertyToID("_DyeColor");
+            _heightmapId = Shader.PropertyToID("Heightmap");
 
             _mainTexId = Shader.PropertyToID("_MainTex");
             _dyeDissipationId = Shader.PropertyToID("_DyeDissipation");
@@ -140,8 +146,19 @@ namespace Jules.FluidDynamics
             InitializeBoundaryBuffer();
         }
 
+        private void SetShaderProperties()
+        {
+
+            fluidSimulationShader.SetFloat(_dyeDissipationId, dyeDissipation);
+            fluidSimulationShader.SetFloat(_velocityDissipationId, velocityDissipation);
+            fluidSimulationShader.SetFloat(_timestepId, timeStep);
+            fluidSimulationShader.SetTexture(_drawPressureBoundaryKernelIndex, _heightmapId, heightMap);
+        }
+
         private void Update()
         {
+            SetShaderProperties();
+
             if (reset)
             {
                 paused = false;
@@ -181,9 +198,6 @@ namespace Jules.FluidDynamics
             SubtractGradient();
 
             displayCubeMat.SetTexture(_mainTexId, GetTexture(displayTexture));
-            fluidSimulationShader.SetFloat(_dyeDissipationId, dyeDissipation);
-            fluidSimulationShader.SetFloat(_velocityDissipationId, velocityDissipation);
-            fluidSimulationShader.SetFloat(_timestepId, timeStep);
         }
 
         private Texture GetTexture(TextureType displayTexture)
