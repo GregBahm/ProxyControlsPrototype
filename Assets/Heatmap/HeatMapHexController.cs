@@ -172,7 +172,7 @@ public class HeatMapHexController : MonoBehaviour
     private HexSorter[] GetMatrixTransformations()
     {
         Vector3 cameraInMapSpace = mapTransform.transform.InverseTransformPoint(Camera.main.transform.position);
-        return hexTransforms.OrderBy(item => (item.LocalPos - cameraInMapSpace).magnitude).ToArray();
+        return hexTransforms.OrderBy(item => (item.LocalPos - cameraInMapSpace).sqrMagnitude).ToArray();
     }
 
     private HexSorter CreateHexTransform(Transform helperTransfom, int x, int y, int index)

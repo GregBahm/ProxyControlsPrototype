@@ -74,6 +74,9 @@
                     float3 uvw = float3(uv.x, samplePosition.y, uv.y);
                     fixed4 sampledData = tex3D(_MainTex, uvw);
 
+                    return sampledData;
+
+
                     float data = sampledData.r;
                     float alpha = sampledData.g;
 
