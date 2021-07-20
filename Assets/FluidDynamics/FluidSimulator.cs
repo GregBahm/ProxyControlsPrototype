@@ -68,8 +68,7 @@ namespace Jules.FluidDynamics
         private int _computeDivergenceKernelIndex;
         private int _jacobiKernelIndex;
         private int _subtractGradientKernelIndex;
-        private int _drawPressureBoundaryKernelIndex;
-        private int _drawVelocityBoundaryKernelIndex;
+        private int _addHeightDataKernelIndex;
 
         private int _velocityTextureId;
         private int _readVelocityId;
@@ -106,8 +105,7 @@ namespace Jules.FluidDynamics
             _computeDivergenceKernelIndex = fluidSimulationShader.FindKernel("ComputeDivergence");
             _jacobiKernelIndex = fluidSimulationShader.FindKernel("Jacobi");
             _subtractGradientKernelIndex = fluidSimulationShader.FindKernel("SubtractGradient");
-            _drawPressureBoundaryKernelIndex = fluidSimulationShader.FindKernel("DrawPressureBoundary");
-            _drawVelocityBoundaryKernelIndex = fluidSimulationShader.FindKernel("DrawVelocityBoundary");
+            _addHeightDataKernelIndex = fluidSimulationShader.FindKernel("AddHeightData");
 
             _velocityTextureId = Shader.PropertyToID("_Velocity");
             _readVelocityId = Shader.PropertyToID("ReadVelocity");
@@ -152,7 +150,6 @@ namespace Jules.FluidDynamics
             fluidSimulationShader.SetFloat(_dyeDissipationId, dyeDissipation);
             fluidSimulationShader.SetFloat(_velocityDissipationId, velocityDissipation);
             fluidSimulationShader.SetFloat(_timestepId, timeStep);
-            fluidSimulationShader.SetTexture(_drawPressureBoundaryKernelIndex, _heightmapId, heightMap);
         }
 
         private void Update()
@@ -182,22 +179,33 @@ namespace Jules.FluidDynamics
 
             Advect();
 
-            DrawVelocityBoundary();
 
             ComputeDivergence();
 
             ClearTexture(_pressureTexture);
             ClearTexture(_readPressureTexture);
 
+
             for (int i = 0; i < JacobiIterations; i++)
             {
                 RunJacobi();
-                DrawPressureBoundary();
+                AddHeightData();
             }
 
             SubtractGradient();
 
             displayCubeMat.SetTexture(_mainTexId, GetTexture(displayTexture));
+        }
+
+        private void AddHeightData()
+        {
+            SetVelocityTextures(_addHeightDataKernelIndex);
+            SetPressureTextures(_addHeightDataKernelIndex);
+            fluidSimulationShader.SetVector(_resolutionId, FluidSimResolution);
+            fluidSimulationShader.SetTexture(_addHeightDataKernelIndex, _heightmapId, heightMap);
+            DispatchKernel(_addHeightDataKernelIndex);
+            SwapPressureTextures();
+            SwapVelocityTextures();
         }
 
         private Texture GetTexture(TextureType displayTexture)
@@ -315,19 +323,6 @@ namespace Jules.FluidDynamics
             SwapVelocityTextures();
         }
 
-        private void DrawVelocityBoundary()
-        {
-            SwapVelocityTextures();
-            SetVelocityTextures(_drawVelocityBoundaryKernelIndex);
-
-            fluidSimulationShader.SetFloat(_boundaryValueId, 0f);
-            fluidSimulationShader.SetBuffer(_drawVelocityBoundaryKernelIndex, _boundaryDataBufferId, _boundaryBuffer);
-
-            fluidSimulationShader.Dispatch(_drawVelocityBoundaryKernelIndex, Mathf.CeilToInt(_boundaryBuffer.count / NumThreads.x), 1, 1);
-
-            SwapVelocityTextures();
-        }
-
         private void ComputeDivergence()
         {
             SetVelocityTextures(_computeDivergenceKernelIndex);
@@ -340,22 +335,6 @@ namespace Jules.FluidDynamics
             SetPressureTextures(_jacobiKernelIndex);
             fluidSimulationShader.SetTexture(_jacobiKernelIndex, _readDivergenceId, _divergenceTexture);
             DispatchKernel(_jacobiKernelIndex);
-        }
-
-        private void DrawPressureBoundary()
-        {
-            // TODO: this kernel reads from the previous iteration of the pressure texture.
-            // Need a kernel that copies the value as-is if it's not a boundary pixel and
-            // copies the "inside pixel" value if it's a boundary pixel.
-
-            SetPressureTextures(_drawPressureBoundaryKernelIndex);
-
-            fluidSimulationShader.SetFloat(_boundaryValueId, 1f);
-            fluidSimulationShader.SetBuffer(_drawPressureBoundaryKernelIndex, _boundaryDataBufferId, _boundaryBuffer);
-
-            fluidSimulationShader.Dispatch(_drawPressureBoundaryKernelIndex, Mathf.CeilToInt(_boundaryBuffer.count / NumThreads.x), 1, 1);
-
-            SwapPressureTextures();
         }
 
         private void SubtractGradient()
