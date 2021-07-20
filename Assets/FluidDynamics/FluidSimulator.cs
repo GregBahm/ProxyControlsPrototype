@@ -182,8 +182,6 @@ namespace Jules.FluidDynamics
 
             Advect();
 
-            DrawVelocityBoundary();
-
             ComputeDivergence();
 
             ClearTexture(_pressureTexture);
@@ -192,7 +190,9 @@ namespace Jules.FluidDynamics
             for (int i = 0; i < JacobiIterations; i++)
             {
                 RunJacobi();
-                DrawPressureBoundary();
+
+                SwapPressureTextures();
+                //DrawPressureBoundary();
             }
 
             SubtractGradient();
