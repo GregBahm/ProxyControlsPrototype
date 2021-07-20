@@ -10,9 +10,9 @@
             Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
 
             LOD 100
-            Blend One OneMinusSrcAlpha
+            //Blend SrcAlpha OneMinusSrcAlpha
             Cull Back
-            ZTest LEqual
+            ZTest Always
             ZWrite Off
             Fog { Mode off }
 
@@ -21,8 +21,6 @@
                 CGPROGRAM
                 #pragma vertex vert
                 #pragma fragment frag
-                #pragma multi_compile ___ FOCUS_PLANE_ON
-                #pragma multi_compile ____ FOCUS_PLANE_HARD_CUTOFF_ON
 
                 #include "UnityCG.cginc"
 
@@ -41,6 +39,7 @@
                 struct v2f
                 {
                     fixed4 vertex : SV_POSITION;
+                    float4 screenPosition : TEXCOORD0;
                     fixed3 ray_o : TEXCOORD1; // ray origin
                     fixed3 ray_d : TEXCOORD2; // ray direction
                     UNITY_VERTEX_INPUT_INSTANCE_ID
@@ -48,13 +47,9 @@
                 };
 
                 sampler3D _MainTex;
-                fixed4 _MainTex_ST;
                 float _Alpha;
                 sampler2D _Gradient;
-
-                float _SliceAxis1Min, _SliceAxis1Max; 
-                float _SliceAxis2Min, _SliceAxis2Max;
-                float _SliceAxis3Min, _SliceAxis3Max;
+                sampler2D _CameraDepthTexture; 
 
                 v2f vert(appdata v)
                 {
@@ -68,53 +63,14 @@
                     o.ray_o = v.vertex; // v.vertex.xyz - o.ray_d;
                     o.vertex = UnityObjectToClipPos(v.vertex);
 
+                    o.screenPosition = ComputeScreenPos(o.vertex);
                     return o;
-                }
-
-                fixed4 BlendUnder(fixed4 color, fixed4 newColor)
-                {
-                    color.rgb += (1.0 - color.a) * newColor.a * newColor.rgb;
-                    //color.a += (1.0 - color.a) * newColor.a;
-                    return color;
-                }
-
-                // calculates intersection between a ray and a box
-                // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
-                bool IntersectBox(float3 ray_o, float3 ray_d, float3 boxMin, float3 boxMax, out float tNear, out float tFar)
-                {
-                    // compute intersection of ray with all six bbox planes
-                    float3 invR = 1.0 / ray_d;
-                    float3 tBot = invR * (boxMin.xyz - ray_o);
-                    float3 tTop = invR * (boxMax.xyz - ray_o);
-                    // re-order intersections to find smallest and largest on each axis
-                    float3 tMin = min(tTop, tBot);
-                    float3 tMax = max(tTop, tBot);
-                    // find the largest tMin and the smallest tMax
-                    float2 t0 = max(tMin.xx, tMin.yz);
-                    float largest_tMin = max(t0.x, t0.y);
-                    t0 = min(tMax.xx, tMax.yz);
-                    float smallest_tMax = min(t0.x, t0.y);
-                    // check for hit
-                    bool hit = (largest_tMin <= smallest_tMax);
-                    tNear = largest_tMin;
-                    tFar = smallest_tMax;
-                    return hit;
-                }
-
-                inline float InverseLerp(float a, float b, float value)
-                {
-                    return saturate((value - a) / (b - a));
-                }
-
-                inline float DistanceFromPlane(float3 pos, float4 plane)
-                {
-                    return dot(plane.xyz, pos) + plane.w;
                 }
 
                 fixed4 DataToColor(fixed3 samplePosition)
                 {
                     samplePosition = samplePosition + 0.5f;
-                    float2 uv = TRANSFORM_TEX(samplePosition.xz, _MainTex);
+                    float2 uv = samplePosition.xz;
                     float3 uvw = float3(uv.x, samplePosition.y, uv.y);
                     fixed4 sampledData = tex3D(_MainTex, uvw);
 
@@ -127,20 +83,18 @@
                     return sampledColor;
                 }
 
-                // Converts local position to depth value
-                float localToDepth(float3 localPos)
+                fixed4 BlendUnder(fixed4 color, fixed4 newColor)
                 {
-                    float4 clipPos = UnityObjectToClipPos(float4(localPos, 1.0f));
-
-#if defined(SHADER_API_GLCORE) || defined(SHADER_API_OPENGL) || defined(SHADER_API_GLES) || defined(SHADER_API_GLES3)
-                    return (clipPos.z / clipPos.w) * 0.5 + 0.5;
-#else
-                    return clipPos.z / clipPos.w;
-#endif
+                  color.rgb += (1.0 - color.a) * newColor.a * newColor.rgb;
+                  //color.a += (1.0 - color.a) * newColor.a;
+                  return color;
                 }
 
                 fixed4 frag(v2f i) : SV_Target
                 {
+                    float2 screenCoords = i.screenPosition.xy / i.screenPosition.w;
+                    float depthToBeat = tex2D(_CameraDepthTexture, screenCoords).x;
+ 
                     // Start raymarching at the front surface of the object
                     fixed3 rayOrigin = i.ray_o;
 
@@ -148,7 +102,7 @@
                     // as it's linearly interpolated, and would need to be renormalized anyway
                     fixed3 rayDirection = normalize(i.ray_d);
                     fixed3 samplePosition = rayOrigin;
-                    fixed4 color = fixed4(0, 0, 0, 0);
+                    fixed4 ret = fixed4(0, 0, 0, 0);
 
                     float stepSize = sqrt(3) / MAX_STEP_COUNT;
                     [unroll(MAX_STEP_COUNT)]
@@ -156,14 +110,19 @@
                     {
                         // Accumulate color only within unit cube bounds
                         float3 absSample = abs(samplePosition.xyz);
+                        bool isInBox = max(absSample.x, max(absSample.y, absSample.z)) < 0.5f + EPSILON;
 
-                        if (max(absSample.x, max(absSample.y, absSample.z)) < 0.5f + EPSILON)
-                        {
-                            color = BlendUnder(color, DataToColor(samplePosition));
+                        float sampleDepth = UnityObjectToClipPos(samplePosition).z;
+                        bool depthPasses = sampleDepth > depthToBeat;
+
+                        if (isInBox && depthPasses)
+                        { 
+                            fixed4 colorData = DataToColor(samplePosition);
+                            ret = BlendUnder(ret, colorData);
                             samplePosition += rayDirection * stepSize;
                         }
                     }
-                  return color;
+                  return ret;
               }
               ENDCG
           }

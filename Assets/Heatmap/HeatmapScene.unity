@@ -463,7 +463,6 @@ MonoBehaviour:
   hexMesh: {fileID: -8815449626050670683, guid: 32cfcca1767f4a94891d398ddcd87680, type: 3}
   hexMeshMat: {fileID: 2100000, guid: 159e0325e72cdd14891277c3bc15c8ee, type: 2}
   mapTransform: {fileID: 202963055}
-  compositionMat: {fileID: 2100000, guid: 734e98b95daf5744f8b1f99221c2ddfd, type: 2}
   drawMode: 0
 --- !u!4 &1066506964
 Transform:
