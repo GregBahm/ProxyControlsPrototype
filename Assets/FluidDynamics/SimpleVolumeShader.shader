@@ -10,7 +10,7 @@
             Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
 
             LOD 100
-            //Blend SrcAlpha OneMinusSrcAlpha
+            Blend One OneMinusSrcAlpha
             Cull Back
             ZTest Always
             ZWrite Off
@@ -112,8 +112,9 @@
                         float3 absSample = abs(samplePosition.xyz);
                         bool isInBox = max(absSample.x, max(absSample.y, absSample.z)) < 0.5f + EPSILON;
 
-                        float sampleDepth = UnityObjectToClipPos(samplePosition).z;
-                        bool depthPasses = sampleDepth > depthToBeat;
+                        float4 clipPosition = UnityObjectToClipPos(samplePosition);
+                        float rayDepth = clipPosition.z / clipPosition.w;
+                        bool depthPasses = rayDepth > depthToBeat;
 
                         if (isInBox && depthPasses)
                         { 
@@ -122,7 +123,8 @@
                             samplePosition += rayDirection * stepSize;
                         }
                     }
-                  return ret;
+
+                    return ret;
               }
               ENDCG
           }
