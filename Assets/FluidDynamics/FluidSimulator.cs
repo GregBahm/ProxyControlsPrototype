@@ -60,8 +60,6 @@ namespace Jules.FluidDynamics
         private RenderTexture _pressureTexture;
         private RenderTexture _readPressureTexture;
 
-        private ComputeBuffer _boundaryBuffer;
-
         private int _addDyeSprayKernelIndex;
         private int _advectionKernelIndex;
         private int _clearTexturesKernelIndex;
@@ -80,8 +78,6 @@ namespace Jules.FluidDynamics
         private int _readDivergenceId;
         private int _pressureTextureId;
         private int _readPressureId;
-        private int _boundaryValueId;
-        private int _boundaryDataBufferId;
 
         private int _dyeSprayPositionId;
         private int _dyeSprayDirectionId;
@@ -120,8 +116,6 @@ namespace Jules.FluidDynamics
             _readDivergenceId = Shader.PropertyToID("ReadDivergence");
             _pressureTextureId = Shader.PropertyToID("_Pressure");
             _readPressureId = Shader.PropertyToID("ReadPressure");
-            _boundaryValueId = Shader.PropertyToID("_BoundaryValue");
-            _boundaryDataBufferId = Shader.PropertyToID("_BoundaryData");
             _dyeColorId = Shader.PropertyToID("_DyeColor");
             _heightmapId = Shader.PropertyToID("Heightmap");
 
@@ -137,16 +131,11 @@ namespace Jules.FluidDynamics
             _divergenceTexture = CreateTexture();
             _pressureTexture = CreateTexture();
             _readPressureTexture = CreateTexture();
-
-            // Fluid sim properties
-            fluidSimulationShader.SetVector(_resolutionId, FluidSimResolution);
-
-            InitializeBoundaryBuffer();
         }
 
         private void SetShaderProperties()
         {
-
+            fluidSimulationShader.SetVector(_resolutionId, FluidSimResolution);
             fluidSimulationShader.SetFloat(_dyeDissipationId, dyeDissipation);
             fluidSimulationShader.SetFloat(_velocityDissipationId, velocityDissipation);
             fluidSimulationShader.SetFloat(_timestepId, timeStep);
@@ -179,6 +168,7 @@ namespace Jules.FluidDynamics
 
             Advect();
 
+            //AddHeightData();
 
             ComputeDivergence();
 
@@ -189,7 +179,6 @@ namespace Jules.FluidDynamics
             for (int i = 0; i < JacobiIterations; i++)
             {
                 RunJacobi();
-                AddHeightData();
             }
 
             SubtractGradient();
@@ -201,9 +190,11 @@ namespace Jules.FluidDynamics
         {
             SetVelocityTextures(_addHeightDataKernelIndex);
             SetPressureTextures(_addHeightDataKernelIndex);
+
             fluidSimulationShader.SetVector(_resolutionId, FluidSimResolution);
             fluidSimulationShader.SetTexture(_addHeightDataKernelIndex, _heightmapId, heightMap);
             DispatchKernel(_addHeightDataKernelIndex);
+
             SwapPressureTextures();
             SwapVelocityTextures();
         }
@@ -227,68 +218,8 @@ namespace Jules.FluidDynamics
 
         private void OnDestroy()
         {
-            _boundaryBuffer.Dispose();
         }
 
-
-        private void InitializeBoundaryBuffer()
-        {
-            int boundarySize = (int)(FluidSimResolution.x * FluidSimResolution.y * 2 +
-                                      FluidSimResolution.x * FluidSimResolution.z * 2 +
-                                      FluidSimResolution.y * FluidSimResolution.z * 2);
-
-            _boundaryBuffer = new ComputeBuffer(boundarySize, BoundaryDataStride);
-
-            BoundaryData[] boundaryData = new BoundaryData[boundarySize];
-
-            int currentIndex = 0;
-            for (int i = 0; i < FluidSimResolution.x; i++)
-            {
-                for (int j = 0; j < FluidSimResolution.y; j++)
-                {
-                    boundaryData[currentIndex].pixelCoords = new Vector3(i, j, 0);
-                    boundaryData[currentIndex].insideOffset = new Vector3(0, 0, 1);
-
-                    currentIndex++;
-
-                    boundaryData[currentIndex].pixelCoords = new Vector3(i, j, FluidSimResolution.z - 1);
-                    boundaryData[currentIndex].insideOffset = new Vector3(0, 0, -1);
-
-                    currentIndex++;
-                }
-
-                for (int k = 0; k < FluidSimResolution.z; k++)
-                {
-                    boundaryData[currentIndex].pixelCoords = new Vector3(i, 0, k);
-                    boundaryData[currentIndex].insideOffset = new Vector3(0, 1, 0);
-
-                    currentIndex++;
-
-                    boundaryData[currentIndex].pixelCoords = new Vector3(i, FluidSimResolution.y - 1, k);
-                    boundaryData[currentIndex].insideOffset = new Vector3(0, -1, 0);
-
-                    currentIndex++;
-                }
-            }
-
-            for (int j = 0; j < FluidSimResolution.y; j++)
-            {
-                for (int k = 0; k < FluidSimResolution.z; k++)
-                {
-                    boundaryData[currentIndex].pixelCoords = new Vector3(0, j, k);
-                    boundaryData[currentIndex].insideOffset = new Vector3(1, 0, 0);
-
-                    currentIndex++;
-
-                    boundaryData[currentIndex].pixelCoords = new Vector3(FluidSimResolution.x - 1, j, k);
-                    boundaryData[currentIndex].insideOffset = new Vector3(-1, 0, 0);
-
-                    currentIndex++;
-                }
-            }
-
-            _boundaryBuffer.SetData(boundaryData);
-        }
 
         private void ClearTexture(RenderTexture texture)
         {
