@@ -1177,7 +1177,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e77392f5e544ce7478de1719d11a84a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  color: {r: 0.30980393, g: 0, b: 0.023529412, a: 1}
+  color: {r: 1, g: 0, b: 0.07594967, a: 1}
   radius: 2
   force: 1
   simulator: {fileID: 1899616874}

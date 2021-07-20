@@ -37,7 +37,7 @@ SamplerState samplerHeightmap;
 
 float3 _Resolution;
 
-float3 _DyeColor;
+float4 _DyeColor;
 float3 _DyeSprayPosition;
 float3 _DyeSprayDirection;
 float _DyeSprayRadius;
@@ -63,18 +63,18 @@ void AddDyeSpray(uint3 id : SV_DispatchThreadID)
     float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
     float3 centerToCurrent = idSample - _DyeSprayPosition * _Resolution;
 
-    float3 gaussianValue = Gaussian(centerToCurrent, _DyeSprayRadius);
-    float3 outputColor = _DyeColor * gaussianValue;
+    float gaussianValue = Gaussian(centerToCurrent, _DyeSprayRadius);
+    float4 outputColor = _DyeColor * gaussianValue;
     float4 readColor = ReadDye.SampleLevel(samplerReadDye, idSample / _Resolution, 0);
 
-    outputColor = outputColor + readColor.rgb;
+    outputColor = outputColor + readColor;
 
     float3 outputVelocity = DefaultDyeSprayStrength * gaussianValue * _DyeSprayDirection;
     float4 readVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
 
     outputVelocity = outputVelocity + readVelocity.rgb;
 
-    _Dye[id] = float4(outputColor.rgb, 1);
+    _Dye[id] = outputColor;  
     _Velocity[id] = float4(outputVelocity.rgb, 1);
 }
 
@@ -89,7 +89,8 @@ void Advect(uint3 id : SV_DispatchThreadID)
     float4 backtrackVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, backtrackSamplePoint, 0);
     float4 backtrackDye = ReadDye.SampleLevel(samplerReadDye, backtrackSamplePoint, 0);
 
-    _Dye[id] = float4(_DyeDissipation * backtrackDye.xyz, 1);
+    _Dye[id] = backtrackDye * _DyeDissipation;
+    //_Dye[id] = float4(backtrackDye.xyz, _DyeDissipation * backtrackDye.a);
     _Velocity[id] = float4(_VelocityDissipation * backtrackVelocity.xyz, 1);
 }
 
@@ -182,5 +183,5 @@ void DrawVelocityBoundary(uint3 id : SV_DispatchThreadID)
 [numthreads(16, 16, 1)]
 void ClearTextures(uint3 id : SV_DispatchThreadID)
 {
-    _ClearTexture[id] = float4(0, 0, 0, 1);
+    _ClearTexture[id] = 0;
 }

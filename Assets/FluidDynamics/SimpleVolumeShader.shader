@@ -10,7 +10,8 @@
             Tags { "Queue" = "Transparent" "RenderType" = "Transparent" }
 
             LOD 100
-            Blend One OneMinusSrcAlpha
+            //Blend One OneMinusSrcAlpha
+            Blend SrcAlpha OneMinusSrcAlpha
             Cull Back
             ZTest Always
             ZWrite Off
@@ -67,29 +68,13 @@
                     return o;
                 }
 
-                fixed4 DataToColor(fixed3 samplePosition)
-                {
-                    samplePosition = samplePosition + 0.5f;
-                    float2 uv = samplePosition.xz;
-                    float3 uvw = float3(uv.x, samplePosition.y, uv.y);
-                    fixed4 sampledData = tex3D(_MainTex, uvw);
-
-                    return sampledData;
-
-
-                    float data = sampledData.r;
-                    float alpha = sampledData.g;
-
-                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
-                    sampledColor.a *= _Alpha;
-
-                    return sampledColor;
-                }
-
                 fixed4 BlendUnder(fixed4 color, fixed4 newColor)
                 {
-                  color.rgb += (1.0 - color.a) * newColor.a * newColor.rgb;
-                  //color.a += (1.0 - color.a) * newColor.a;
+                  float maxPower = 1 - color.a;
+                  float effectiveAlpha = pow(newColor.a, 2) * maxPower;
+                  color.rgb = lerp(color.rgb, saturate(newColor.rgb * (1.0 / newColor.a)), effectiveAlpha);
+                  color.a += effectiveAlpha;
+                  color.a = saturate(color.a);
                   return color;
                 }
 
@@ -105,7 +90,7 @@
                     // as it's linearly interpolated, and would need to be renormalized anyway
                     fixed3 rayDirection = normalize(i.ray_d);
                     fixed3 samplePosition = rayOrigin;
-                    fixed4 ret = fixed4(0, 0, 0, 0);
+                    fixed4 ret = fixed4(1, 1, 1, 0);
 
                     float stepSize = sqrt(3) / MAX_STEP_COUNT;
                     [unroll(MAX_STEP_COUNT)]
@@ -121,12 +106,11 @@
 
                         if (isInBox && depthPasses)
                         { 
-                            fixed4 colorData = DataToColor(samplePosition);
+                            fixed4 colorData = tex3D(_MainTex, samplePosition + 0.5f);
                             ret = BlendUnder(ret, colorData);
                             samplePosition += rayDirection * stepSize;
                         }
                     }
-
                     return ret;
               }
               ENDCG
