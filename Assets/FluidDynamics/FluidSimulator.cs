@@ -119,15 +119,15 @@ namespace Jules.FluidDynamics
             SetShaderProperties();
 
             Advect();
+            SwapVelocityTextures();
             SetTerrainVelocity();
 
             SwapDyeTextures();
             SwapVelocityTextures();
             ComputeDivergence();
 
-            //ClearTexture(_readPressureTexture);
-
-            SetTerrainPressure();
+            ClearTexture(_readPressureTexture);
+            //SetTerrainPressure();
 
             for (int i = 0; i < JACOBI_ITERATIONS; i++)
             {

@@ -1516,13 +1516,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1764591061}
-  m_LocalRotation: {x: -0, y: -0.80418336, z: -0, w: 0.59438133}
-  m_LocalPosition: {x: 0.473, y: 0.5, z: 0.463}
+  m_LocalRotation: {x: 0.42807662, y: 0.27036664, z: -0.7845691, w: -0.35791555}
+  m_LocalPosition: {x: 0.915, y: 0.5, z: 0.382}
   m_LocalScale: {x: 0.03, y: 0.03, z: 0.03}
   m_Children: []
   m_Father: {fileID: 915722709}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: -107.063, z: 0}
+  m_LocalEulerAnglesHint: {x: 6.766, y: 299.388, z: 126.998}
 --- !u!1 &1899616872
 GameObject:
   m_ObjectHideFlags: 0
@@ -1595,11 +1595,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22709c54e79e6414dbd7f8ca4784a9d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dyeDissipation: 0.99
-  velocityDissipation: 0.999
+  dyeDissipation: 0.999
+  velocityDissipation: 0.99
   timeStep: 0.01
   dyeSprayerScript: {fileID: 1764591062}
-  reset: 0
   heightMap: {fileID: 2800000, guid: 366b405e15e91d948ad86ecda2843b07, type: 3}
   displayTexture: 0
   displayCubeMat: {fileID: 2100000, guid: bd54c0ee91b87da4199de453641610bf, type: 2}
@@ -1795,7 +1794,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.47
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
       propertyPath: m_LocalPosition.y

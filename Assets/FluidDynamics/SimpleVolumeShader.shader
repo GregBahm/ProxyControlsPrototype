@@ -71,7 +71,7 @@
                 fixed4 BlendUnder(fixed4 color, fixed4 newColor)
                 {
                   float maxPower = 1 - color.a;
-                  float effectiveAlpha = pow(newColor.a, 2) * maxPower;
+                  float effectiveAlpha = pow(newColor.a * _Alpha, 2) * maxPower;
                   color.rgb = lerp(color.rgb, saturate(newColor.rgb * (1.0 / newColor.a)), effectiveAlpha);
                   color.a += effectiveAlpha;
                   color.a = saturate(color.a);
