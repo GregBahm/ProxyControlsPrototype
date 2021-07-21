@@ -1458,7 +1458,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   color: {r: 1, g: 0.24705882, b: 0, a: 1}
   radius: 2
-  force: 0.01
+  force: 1
   simulator: {fileID: 1899616874}
 --- !u!23 &1764591063
 MeshRenderer:
@@ -1601,7 +1601,7 @@ MonoBehaviour:
   dyeSprayerScript: {fileID: 1764591062}
   reset: 0
   heightMap: {fileID: 2800000, guid: 366b405e15e91d948ad86ecda2843b07, type: 3}
-  displayTexture: 3
+  displayTexture: 0
   displayCubeMat: {fileID: 2100000, guid: bd54c0ee91b87da4199de453641610bf, type: 2}
   fluidSimulationShader: {fileID: 7200000, guid: fec093ce7d2b59a4285949893e5413a1, type: 3}
 --- !u!33 &1899616875
@@ -1983,7 +1983,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   color: {r: 0, g: 0, b: 1, a: 1}
   radius: 2
-  force: 0.01
+  force: 1
   simulator: {fileID: 1899616874}
 --- !u!23 &2103833386
 MeshRenderer:

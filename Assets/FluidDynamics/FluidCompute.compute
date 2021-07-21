@@ -4,9 +4,8 @@
 #pragma kernel ComputeDivergence
 #pragma kernel Jacobi
 #pragma kernel SubtractGradient
-#pragma kernel AddHeightData
-
-#define DefaultDyeSprayStrength 1
+#pragma kernel SetTerrainPressure
+#pragma kernel SetTerrainVelocity
 
 float _DyeDissipation;
 float _VelocityDissipation;
@@ -68,7 +67,7 @@ void AddDyeSpray(uint3 id : SV_DispatchThreadID)
 
     outputColor = outputColor + readColor;
 
-    float3 outputVelocity = DefaultDyeSprayStrength * gaussianValue * _DyeSprayDirection;
+    float3 outputVelocity = gaussianValue * _DyeSprayDirection;
     float4 readVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
 
     outputVelocity = outputVelocity + readVelocity.rgb;
@@ -89,7 +88,6 @@ void Advect(uint3 id : SV_DispatchThreadID)
     float4 backtrackDye = ReadDye.SampleLevel(samplerReadDye, backtrackSamplePoint, 0);
 
     _Dye[id] = backtrackDye * _DyeDissipation;
-    //_Dye[id] = float4(backtrackDye.xyz, _DyeDissipation * backtrackDye.a);
     _Velocity[id] = float4(_VelocityDissipation * backtrackVelocity.xyz, 1);
 }
 
@@ -116,7 +114,7 @@ void ComputeDivergence(uint3 id : SV_DispatchThreadID)
 [numthreads(16, 16, 1)]
 void Jacobi(uint3 id : SV_DispatchThreadID)
 {
-    float3 idSample = float3(id)+float3(0.5, 0.5, 0.5);
+    float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
 
     // Compute neighbors
     float pressureXPos = ReadPressure.SampleLevel(samplerReadPressure, (idSample + float3(1, 0, 0)) / _Resolution, 0).x;
@@ -141,7 +139,7 @@ void Jacobi(uint3 id : SV_DispatchThreadID)
 [numthreads(16, 16, 1)]
 void SubtractGradient(uint3 id : SV_DispatchThreadID)
 {
-    float3 idSample = float3(id)+float3(0.5, 0.5, 0.5);
+    float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
     float4 velocityAtId = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
 
     // Compute neighbors
@@ -157,41 +155,37 @@ void SubtractGradient(uint3 id : SV_DispatchThreadID)
     _Velocity[id] = float4(velocityAtId.xyz - pressureGradient.xyz , 1);
 }
 
-[numthreads(16, 1, 1)]
-void DrawPressureBoundary(uint3 id : SV_DispatchThreadID)
-{
-    //float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
-    //float oldValue = ReadPressure.SampleLevel(samplerReadPressure, idSample / _Resolution, 0).x;
-    ////_Pressure[index] = float4(pressureValue * _BoundaryValue, 0, 0, 1);
-    //
-    //float heightMapVal = Heightmap.SampleLevel(samplerHeightmap, id.xz, 0).x;
-    // 
-    //float isFixed = heightMapVal < idSample.y;
-    //_Pressure[id] = float4(oldValue * isFixed, 0, 0, 1);
-}
-
-[numthreads(16, 1, 1)]
-void DrawVelocityBoundary(uint3 id : SV_DispatchThreadID)
-{
-    //uint3 index = int3(_BoundaryData[id.x].pixelCoords);
-    //int3 offset = int3(_BoundaryData[id.x].insideOffset);
-
-    //_Velocity[index] = float4(0, 0, 0, 1);
-}
-
-
 [numthreads(16, 16, 1)]
 void ClearTextures(uint3 id : SV_DispatchThreadID)
 {
   _ClearTexture[id] = 0;
 }
 
-[numthreads(16, 16, 1)]
-void AddHeightData(uint3 id : SV_DispatchThreadID)
+float GetTerrainHeight(float3 idToUv)
 {
-    float3 idSample = float3(id) / _Resolution;
-    float heightMapVal = Heightmap.SampleLevel(samplerHeightmap, idSample.xz, 0);
-    float pressureVal = heightMapVal > idSample.y;
-    _Pressure[id] = float4(heightMapVal.xxx, pressureVal);
-    //_ClearTexture[id] = 0;
+  float2 uvs = 1 - idToUv.xz;
+  return Heightmap.SampleLevel(samplerHeightmap, uvs, 0);
+}
+
+bool IsOverTerrain(float3 idSample)
+{
+  float3 idToUv = idSample / _Resolution;
+  float terrainHeight = GetTerrainHeight(idToUv);
+  return terrainHeight > idToUv.y;
+}
+
+[numthreads(16, 16, 1)]
+void SetTerrainPressure(uint3 id : SV_DispatchThreadID)
+{
+  float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
+  //_Pressure[id] = terrainOver;// float4(terrainHeight.xxx, terrainOver);
+}
+
+[numthreads(16, 16, 1)]
+void SetTerrainVelocity(uint3 id : SV_DispatchThreadID)
+{
+  float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
+  float4 oldVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
+
+  //_Velocity[id] = oldVelocity;
 }
