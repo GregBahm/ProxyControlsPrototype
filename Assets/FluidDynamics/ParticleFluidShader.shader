@@ -2,13 +2,12 @@ Shader "Unlit/ParticleFluidShader"
 {
   Properties
   {
-        _MainTex("Texture", 2D) = "white" {}
+    [Toggle(COLOR_GRADIENT)] _UseColorGradient("Use Color Gradient", Int) = 0
+        _ColorGradient("Color Gradient", 2D) = "white" {}
   }
     SubShader
   {
     LOD 100
-    Blend SrcAlpha OneMinusSrcAlpha
-    ZWrite Off
 
     Pass
     {
@@ -16,6 +15,7 @@ Shader "Unlit/ParticleFluidShader"
       #pragma vertex vert  
       #pragma fragment frag
       #pragma target 5.0
+      #pragma shader_feature COLOR_GRADIENT
 
       #include "UnityCG.cginc"
 
@@ -32,14 +32,17 @@ Shader "Unlit/ParticleFluidShader"
       struct v2f
       {
         float4 pos : SV_POSITION;
-        float2 uvs : TEXCOORD2;
+        float2 cardUvs : TEXCOORD2;
+        float4 dyeValue : TEXCOORD3;
         UNITY_VERTEX_OUTPUT_STEREO
       };
 
       float _ParticleSize;
       float _ParticlesCount;
       float4x4 _MasterTransform;
-      sampler2D _MainTex;
+      sampler2D _ColorGradient;
+      sampler3D DyeVolume;
+      sampler3D VelocityField;
 
       float GetLifespanFactor(float z)
       {
@@ -50,7 +53,7 @@ Shader "Unlit/ParticleFluidShader"
 
       v2f vert(input i)
       {
-        v2f o;
+        v2f o; 
         UNITY_SETUP_INSTANCE_ID(i);
         UNITY_INITIALIZE_OUTPUT(v2f, o);
         UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
@@ -58,16 +61,31 @@ Shader "Unlit/ParticleFluidShader"
         float3 basePos = _ParticleBuffer[i.inst];
         float4 worldPos = mul(_MasterTransform, float4(basePos, 1));
 
+        float4 fluidVolumeUvs = float4(basePos + .5, 0);
+        fixed4 dyeVal = tex3Dlod(DyeVolume, fluidVolumeUvs);
+        fixed3 velocityVal = tex3Dlod(VelocityField, fluidVolumeUvs).xyz;
+
+        float alpha = dyeVal.a;
+
         float3 quadPoint = _MeshBuffer[i.id];
-        float3 finalQuadPoint = quadPoint * _ParticleSize;
+        float3 finalQuadPoint = quadPoint * _ParticleSize * alpha;
         o.pos = mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, worldPos) + float4(finalQuadPoint, 0));
-        o.uvs = quadPoint.xy;
+        o.cardUvs = quadPoint.xy;
+        o.dyeValue = dyeVal;
         return o;
       }
 
       fixed4 frag(v2f i) : COLOR
       {
-        return 1;
+        float distToCenter = 1 - length(i.cardUvs);
+        clip(distToCenter - .5);
+#ifdef COLOR_GRADIENT
+        return tex2D(_ColorGradient, float2(i.dyeValue.a, 0));
+        return i.dyeValue;
+#else
+        return i.dyeValue;
+#endif
+         
       }
       ENDCG
     }

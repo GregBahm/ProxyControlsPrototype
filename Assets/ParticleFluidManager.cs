@@ -1,11 +1,19 @@
+using Jules.FluidDynamics;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(FluidSimulator))]
 public class ParticleFluidManager : MonoBehaviour
 {
     [SerializeField]
     private float particleSize;
+
+    [SerializeField]
+    private float particleLifetime;
+
+    [SerializeField]
+    private float velocityPower;
 
     [SerializeField]
     private Mesh gridPointMesh;
@@ -17,36 +25,58 @@ public class ParticleFluidManager : MonoBehaviour
     private int particleCount;
 
     [SerializeField]
-    private BoxCollider _boundsSource;
+    private ComputeShader fluidParticleMover;
 
-    private int _particleKernel;
+    [SerializeField]
+    private BoxCollider boundsSource;
+
+    private FluidSimulator _fluidSimulator;
+
+    private int _particleMoverKernel;
     private int _groupSize = 128;
 
     private int _meshVertCount;
     private ComputeBuffer _meshBuffer;
     private int _meshStride = sizeof(float) * 3;
 
+    private ComputeBuffer _sourcePositionsBuffer;
     private ComputeBuffer _particleBuffer;
-    private int _particleStride = sizeof(float) * 3;
+    private int _particleStride = sizeof(float) * 4;
+
+    private static readonly int _meshBufferId = Shader.PropertyToID("_MeshBuffer");
+    private static readonly int _particleBufferId = Shader.PropertyToID("_ParticleBuffer");
+    private static readonly int _masterTransformId = Shader.PropertyToID("_MasterTransform");
+    private static readonly int _particleSizeId = Shader.PropertyToID("_ParticleSize");
+    private static readonly int _particlesCountId = Shader.PropertyToID("_ParticlesCount");
+    private static readonly int _dyeVolumeId = Shader.PropertyToID("DyeVolume");
+    private static readonly int _velocityFieldId = Shader.PropertyToID("VelocityField");
+    private static readonly int _sourcePositionsId = Shader.PropertyToID("_SourcePositions");
+    private static readonly int _deltaTimeId = Shader.PropertyToID("_DeltaTime");
+    private static readonly int _particleLifetimeId = Shader.PropertyToID("_ParticleLifetime");
+    private static readonly int _velocityPowerId = Shader.PropertyToID("_VelocityPower");
 
     void Start()
     {
         _meshVertCount = gridPointMesh.triangles.Length;
         _meshBuffer = GetMeshBuffer();
-        Vector3[] randomPoints = GetRandomPoints();
+        Vector4[] randomPoints = GetRandomPoints();
         _particleBuffer = GetParticleBuffer(randomPoints);
+        _sourcePositionsBuffer = GetParticleBuffer(randomPoints);
+        _fluidSimulator = GetComponent<FluidSimulator>();
+        fluidParticleMover.FindKernel("MoveFluidParticles");
     }
 
-    private Vector3[] GetRandomPoints()
+    private Vector4[] GetRandomPoints()
     {
-        Vector3[] data = new Vector3[particleCount];
+        Vector4[] data = new Vector4[particleCount];
         for (int i = 0; i < particleCount; i++)
         {
-            data[i] = new Vector3
+            data[i] = new Vector4
             (
                 GetRandomValue(),
                 GetRandomValue(),
-                GetRandomValue()
+                GetRandomValue(),
+                GetRandomValue() * particleLifetime
             );
         }
         return data;
@@ -54,17 +84,33 @@ public class ParticleFluidManager : MonoBehaviour
 
     private void Update()
     {
+        MoveParticles();
         Draw();
+    }
+
+    private void MoveParticles()
+    {
+        fluidParticleMover.SetFloat(_velocityPowerId, velocityPower);
+        fluidParticleMover.SetFloat(_deltaTimeId, Time.deltaTime);
+        fluidParticleMover.SetFloat(_particleLifetimeId, particleLifetime);
+        fluidParticleMover.SetTexture(_particleMoverKernel, _velocityFieldId, _fluidSimulator.VelocityTexture);
+        fluidParticleMover.SetBuffer(_particleMoverKernel, _particleBufferId, _particleBuffer);
+        fluidParticleMover.SetBuffer(_particleMoverKernel, _sourcePositionsId, _sourcePositionsBuffer);
+
+        int groups = Mathf.CeilToInt((float)particleCount / _groupSize);
+        fluidParticleMover.Dispatch(_particleMoverKernel, groups, 1, 1);
     }
 
     private void Draw()
     {
-        particleMat.SetBuffer("_MeshBuffer", _meshBuffer);
-        particleMat.SetBuffer("_ParticleBuffer", _particleBuffer);
-        particleMat.SetMatrix("_MasterTransform", transform.localToWorldMatrix);
-        particleMat.SetFloat("_ParticleSize", particleSize);
-        particleMat.SetFloat("_ParticlesCount", particleCount);
-        Graphics.DrawProcedural(particleMat, _boundsSource.bounds, MeshTopology.Triangles, _meshVertCount, particleCount);
+        particleMat.SetBuffer(_meshBufferId, _meshBuffer);
+        particleMat.SetBuffer(_particleBufferId, _particleBuffer);
+        particleMat.SetMatrix(_masterTransformId, transform.localToWorldMatrix);
+        particleMat.SetFloat(_particleSizeId, particleSize);
+        particleMat.SetFloat(_particlesCountId, particleCount);
+        particleMat.SetTexture(_dyeVolumeId, _fluidSimulator.DyeTexture);
+        particleMat.SetTexture(_velocityFieldId, _fluidSimulator.VelocityTexture);
+        Graphics.DrawProcedural(particleMat, boundsSource.bounds, MeshTopology.Triangles, _meshVertCount, particleCount);
     }
 
     private ComputeBuffer GetMeshBuffer()
@@ -84,7 +130,7 @@ public class ParticleFluidManager : MonoBehaviour
         return Random.value - .5f;
     }
 
-    private ComputeBuffer GetParticleBuffer(Vector3[] data)
+    private ComputeBuffer GetParticleBuffer(Vector4[] data)
     {
         ComputeBuffer ret = new ComputeBuffer(particleCount, _particleStride);
         ret.SetData(data);

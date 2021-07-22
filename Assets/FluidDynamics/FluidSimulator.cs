@@ -50,8 +50,10 @@ namespace Jules.FluidDynamics
         private ComputeShader fluidSimulationShader = null;
 
         private RenderTexture _dyeTexture;
+        public RenderTexture DyeTexture => _dyeTexture;
         private RenderTexture _readDyeTexture;
         private RenderTexture _velocityTexture;
+        public RenderTexture VelocityTexture => _velocityTexture;
         private RenderTexture _readVelocityTexture;
         private RenderTexture _divergenceTexture;
         private RenderTexture _pressureTexture;

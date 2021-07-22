@@ -1535,6 +1535,7 @@ GameObject:
   - component: {fileID: 1899616875}
   - component: {fileID: 1899616873}
   - component: {fileID: 1899616874}
+  - component: {fileID: 1899616877}
   m_Layer: 0
   m_Name: VolumeCube
   m_TagString: Untagged
@@ -1549,7 +1550,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1899616872}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -1595,6 +1596,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22709c54e79e6414dbd7f8ca4784a9d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  jacobiIterations: 50
+  resolution: 0
   dyeDissipation: 0.999
   velocityDissipation: 0.99
   timeStep: 0.01
@@ -1627,6 +1630,26 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1899616877
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1899616872}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bc43a235d026cb409dfb0ec7d3a0abb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  particleSize: 0.02
+  particleLifetime: 1
+  velocityPower: 0.005
+  gridPointMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+  particleMat: {fileID: 2100000, guid: b0318764e03563c4e81ae910470084cc, type: 2}
+  particleCount: 50000
+  fluidParticleMover: {fileID: 7200000, guid: 9cc2268d84502aa48bcba0ab7e29d5af, type: 3}
+  boundsSource: {fileID: 202963055}
 --- !u!1 &1922547886
 GameObject:
   m_ObjectHideFlags: 0
