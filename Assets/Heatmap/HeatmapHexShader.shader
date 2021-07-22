@@ -80,7 +80,8 @@ Shader "Unlit/HeatmapHexShader"
 
             v2f vert (appdata v, uint instanceID : SV_InstanceID)
             {
-                float2 masterUvs = _UvsBuffer[instanceID];
+                uint bufferId = floor((float)instanceID / 2);
+                float2 masterUvs = _UvsBuffer[bufferId];
 
                 float heat = GetHeat(masterUvs);
 

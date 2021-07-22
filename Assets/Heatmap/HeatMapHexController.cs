@@ -91,16 +91,14 @@ public class HeatMapHexController : MonoBehaviour
 
     private ComputeBuffer GetUvsBuffer()
     {
-        int totalCount = gridRows * _gridColumns;
-        ComputeBuffer ret = new ComputeBuffer(totalCount * 2, UvsBufferStride);
-        Vector2[] data = new Vector2[gridRows * _gridColumns * 2];
+        ComputeBuffer ret = new ComputeBuffer(gridRows * _gridColumns, UvsBufferStride);
+        Vector2[] data = new Vector2[gridRows * _gridColumns];
         int i = 0;
         for (int x = 0; x < gridRows; x++)
         {
             for (int y = 0; y < _gridColumns; y++)
             {
                 data[i] = GetHexCellPosition(x, y);
-                data[i + totalCount] = GetHexCellPosition(x, y);
                 i++;
             }
         }
@@ -111,7 +109,7 @@ public class HeatMapHexController : MonoBehaviour
     private ComputeBuffer GetArgsBuffer()
     {
         uint indexCountPerInstance = hexMesh.GetIndexCount(0);
-        uint instanceCount = (uint)(gridRows * _gridColumns) * 2;
+        uint instanceCount = (uint)(gridRows * _gridColumns * 2);
         uint startIndexLocation = 0;
         uint baseVertLocation = 0;
         uint startInstanceLocation = 0;
