@@ -4,7 +4,6 @@
 #pragma kernel ComputeDivergence
 #pragma kernel Jacobi
 #pragma kernel SubtractGradient
-#pragma kernel SetTerrainPressure
 #pragma kernel SetTerrainVelocity
 
 float _DyeDissipation;
@@ -176,19 +175,16 @@ bool IsOverTerrain(float3 idSample)
 }
 
 [numthreads(16, 16, 1)]
-void SetTerrainPressure(uint3 id : SV_DispatchThreadID)
-{
-  // TODO: Pressure?
-}
-
-[numthreads(16, 16, 1)]
 void SetTerrainVelocity(uint3 id : SV_DispatchThreadID)
 {
   float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
-  float4 oldVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
+  float4 oldVal = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
   if(IsOverTerrain(idSample))
   {
-    oldVelocity = 0;
+    _Velocity[id] = -oldVal;
   }
-  _Velocity[id] = oldVelocity;
+  else
+  {
+  _Velocity[id] = oldVal;
+  }
 }

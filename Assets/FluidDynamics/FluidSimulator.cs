@@ -8,6 +8,10 @@ namespace Jules.FluidDynamics
     public class FluidSimulator : MonoBehaviour
     {
         [SerializeField]
+        private int jacobiIterations = 50;
+        [SerializeField]
+        private SimResolution resolution;
+        [SerializeField]
         private float dyeDissipation = 0.99f;
         [SerializeField]
         private float velocityDissipation = 0.999f;
@@ -30,13 +34,11 @@ namespace Jules.FluidDynamics
             Pressure
         }
 
-        private struct BoundaryData
+        public enum SimResolution
         {
-            public Vector3 pixelCoords;
-            public Vector3 insideOffset;
+            High,
+            Low
         }
-
-        private const int BoundaryDataStride = (4 * 3) * 2;
 
         [SerializeField]
         private TextureType displayTexture = TextureType.Dye;
@@ -62,7 +64,6 @@ namespace Jules.FluidDynamics
         private int _jacobiKernelIndex;
         private int _subtractGradientKernelIndex;
         private int _setTerrainVelocityKernelIndex;
-        private int _setTerrainPressureKernelIndex;
 
         private static readonly int _velocityTextureId = Shader.PropertyToID("_Velocity");
         private static readonly int _readVelocityId = Shader.PropertyToID("ReadVelocity");
@@ -84,8 +85,6 @@ namespace Jules.FluidDynamics
         private static readonly int _timestepId = Shader.PropertyToID("_Timestep");
         private static readonly int _heightmapId = Shader.PropertyToID("Heightmap");
 
-        private const int JACOBI_ITERATIONS = 50;
-
         private void Start()
         {
             _addDyeSprayKernelIndex = fluidSimulationShader.FindKernel("AddDyeSpray");
@@ -94,7 +93,6 @@ namespace Jules.FluidDynamics
             _computeDivergenceKernelIndex = fluidSimulationShader.FindKernel("ComputeDivergence");
             _jacobiKernelIndex = fluidSimulationShader.FindKernel("Jacobi");
             _subtractGradientKernelIndex = fluidSimulationShader.FindKernel("SubtractGradient");
-            _setTerrainPressureKernelIndex = fluidSimulationShader.FindKernel("SetTerrainPressure");
             _setTerrainVelocityKernelIndex = fluidSimulationShader.FindKernel("SetTerrainVelocity");
 
             _dyeTexture = CreateTexture();
@@ -117,25 +115,20 @@ namespace Jules.FluidDynamics
         private void Update()
         {
             SetShaderProperties();
-
             Advect();
             SwapVelocityTextures();
             SetTerrainVelocity();
-
             SwapDyeTextures();
             SwapVelocityTextures();
             ComputeDivergence();
-
             ClearTexture(_readPressureTexture);
-            //SetTerrainPressure();
-
-            for (int i = 0; i < JACOBI_ITERATIONS; i++)
+            for (int i = 0; i < jacobiIterations; i++)
             {
                 RunJacobi();
             }
             SwapPressureTextures();
-
             SubtractGradient();
+            SwapVelocityTextures();
 
             displayCubeMat.SetTexture(_mainTexId, GetTexture(displayTexture));
         }
@@ -145,13 +138,6 @@ namespace Jules.FluidDynamics
             SetVelocityTextures(_setTerrainVelocityKernelIndex);
             fluidSimulationShader.SetTexture(_setTerrainVelocityKernelIndex, _heightmapId, heightMap);
             DispatchKernel(_setTerrainVelocityKernelIndex);
-        }
-
-        private void SetTerrainPressure()
-        {
-            SetPressureTextures(_setTerrainPressureKernelIndex);
-            fluidSimulationShader.SetTexture(_setTerrainPressureKernelIndex, _heightmapId, heightMap);
-            DispatchKernel(_setTerrainPressureKernelIndex);
         }
 
         private Texture GetTexture(TextureType displayTexture)
@@ -220,8 +206,6 @@ namespace Jules.FluidDynamics
             SetVelocityTextures(_subtractGradientKernelIndex);
 
             DispatchKernel(_subtractGradientKernelIndex);
-
-            SwapVelocityTextures();
         }
 
         private void DispatchKernel(int kernelIndex)

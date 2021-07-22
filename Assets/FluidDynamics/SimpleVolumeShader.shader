@@ -91,7 +91,6 @@
                     fixed3 rayDirection = normalize(i.ray_d);
                     fixed3 samplePosition = rayOrigin;
                     fixed4 ret = fixed4(1, 1, 1, 0);
-
                     float stepSize = sqrt(3) / MAX_STEP_COUNT;
                     [unroll(MAX_STEP_COUNT)]
                     for (int i = 0; i < MAX_STEP_COUNT; i++)
