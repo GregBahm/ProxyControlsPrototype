@@ -2,9 +2,17 @@ Shader "Unlit/HeatmapHexShader"
 {
     Properties
     {
-      _HeatLut("Heat Lut", 2D) = "white" {}
-      _HeatFalloff("Heat Falloff", Float) = 1
-      _HeatDecay("Heat Decay", Float) = 1
+      _HeatLut("Heat Lut", 2D) = "white" {} 
+      _HexAlpha("Hex Alpha", 2D) = "white" {}
+      _HeatFalloff("Dispersion Distance", Float) = 1
+      _HeatIntensity("Heat Intensity", Float) = 1
+      _HeatHeight("Heat Height", Float) = 1
+      _HeatSaturation("Heat Saturation", Float) = 1
+      _Opacity("Opacity", Float) = 1
+      _MaxSigma("Falloff Speed", Float) = 5
+      _MaxHeat("Heat Softcap", Float) = 20
+      [MaterialToggle] _UseHexShading("Use Hex Shading", Float) = 0
+      [MaterialToggle] _UseHeatSoftcap("Use Heat Softcap", Float) = 0
     }
     SubShader
     {
@@ -14,10 +22,10 @@ Shader "Unlit/HeatmapHexShader"
         {
             CGPROGRAM
             #define HEAT_POINTS 16
+            #define PI 3.14159
 
             #pragma vertex vert
             #pragma fragment frag
-            #pragma multi_compile_instancing
             #pragma multi_compile_fwdbase nolightmap nodirlightmap nodynlightmap novertexlight
 
             #include "UnityCG.cginc"
@@ -25,17 +33,22 @@ Shader "Unlit/HeatmapHexShader"
             struct HeatData
             {
               float2 position;
-              float intensity;
               float dispersion;
             };
 
             StructuredBuffer<HeatData> _HeatDataBuffer;
-            StructuredBuffer<int> _RemapBuffer;
             StructuredBuffer<float2> _UvsBuffer;
             float _BoxWidth;
             float _BoxDepth;
             float _HeatFalloff;
-            float _HeatDecay;
+            float _HeatHeight;
+            float _HeatIntensity;
+            float _HeatSaturation;
+            float _Opacity;
+            float _MaxSigma;
+            float _MaxHeat;
+            float _UseHexShading;
+            float _UseHeatSoftcap;
 
             struct appdata
             {
@@ -47,8 +60,8 @@ Shader "Unlit/HeatmapHexShader"
 
             struct v2f
             {
-                float4 vertex : SV_POSITION;
                 float2 uv : TEXCOORD0;
+                float4 vertex : SV_POSITION;
                 float heat : TEXCOORD1;
                 float3 normal : NORMAL;
                 float3 objSpace : TEXCOORD2;
@@ -56,16 +69,30 @@ Shader "Unlit/HeatmapHexShader"
             };
 
             sampler2D _HeatLut;
+            sampler2D _HexAlpha;
             float4x4 _MasterTransform;
-            float _DrawAlpha;
+            float _Margin;
 
-            float AccumulateHeat(float2 uvs, float2 heatPosition, float heatAmount)
+
+            float HeatExponent(float dist, float sigma)
             {
-                float dist = length(uvs - heatPosition) * _HeatFalloff;
-                dist = pow(dist, _HeatDecay);
-                float ret = 1 - dist;
-                ret *= heatAmount;
-                return max(0, ret);
+                dist = _HeatFalloff * dist;
+                return -.5 * pow(dist / sigma, 2);
+            }
+                
+            float AccumulateHeat(float2 uvs, float2 heatPosition, float radiusSize)
+            {
+                float sigma = radiusSize / _MaxSigma; // this calculates the "variable std dev"
+                float dist = length(uvs - heatPosition);
+                float centerGratuity = _BoxWidth / sqrt(3);
+                dist *= step(centerGratuity, dist); // uv of center hex isnt exactly the center of the data; we fudge it here
+                float expVal = HeatExponent(dist, sigma);
+                float ret = exp(expVal) / (2 * PI * sigma * sigma); // get the value on the bell curve
+                float hexToSquareRatio = 3 * sqrt(3) / 8; // ratio of area taken up by the inscribed hexagon to total area
+                ret *= min(1, PI * pow(radiusSize, 2) / (hexToSquareRatio * _BoxWidth * _BoxDepth)); // center now doesnt look insane b/c we mitigate it
+                ret = _UseHeatSoftcap == 0 ? ret : min(_MaxHeat, ret) + sqrt(max(1, ret - _MaxHeat)); // implement some kind of softcap
+                ret *= 1 - step(radiusSize, dist); // cutoff everything past the max distance
+                return max(ret, 0);
             }
 
             float GetHeat(float2 uvs)
@@ -74,29 +101,29 @@ Shader "Unlit/HeatmapHexShader"
                 for (uint i = 0; i < HEAT_POINTS; i++)
                 {
                   HeatData heatPoint = _HeatDataBuffer[i];
-                  float heatContribution = AccumulateHeat(uvs, heatPoint.position, heatPoint.intensity);
-                  heat += heatContribution * heatContribution;
+                  heat += AccumulateHeat(uvs, heatPoint.position, heatPoint.dispersion);
                 }
-                return sqrt(heat);
-            }
-
-            float2 GetUvs(uint instanceID)
-            {
-                uint mappedVal = _RemapBuffer[instanceID];
-                return _UvsBuffer[mappedVal];
+                return heat;
             }
 
             v2f vert (appdata v, uint instanceID : SV_InstanceID)
             {
-                float2 masterUvs = GetUvs(instanceID);
+#ifdef HMD
+              uint bufferId = floor((float)instanceID / 2); // To account for the stereo rendering on the hololens. Also need to 2X the number of instances
+              float2 masterUvs = _UvsBuffer[bufferId];
+#else
+              float2 masterUvs = _UvsBuffer[instanceID];
+#endif
 
                 float heat = GetHeat(masterUvs);
 
-                float effectiveMargin = heat;
-
                 float3 newVert = v.vertex;
+                newVert.x *= _BoxWidth;
+                newVert.x += masterUvs.x - .5;
+                newVert.z *= _BoxDepth * 1.15f; 
+                newVert.z += masterUvs.y - .5;
                 newVert.y += .5;
-                newVert.y *= heat;
+                newVert.y *= pow(heat, .67) * sign(heat) * _HeatHeight;
                 newVert.y -= .5;
 
                 v2f o;
@@ -104,39 +131,37 @@ Shader "Unlit/HeatmapHexShader"
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-                o.vertex = UnityObjectToClipPos(newVert);
-                o.heat = pow(heat, .5);
+                float4 worldPos = mul(_MasterTransform, float4(newVert, 1));
+                o.vertex = mul(UNITY_MATRIX_VP, worldPos);
+                o.uv = v.uv;
+                o.heat = heat;
                 o.objSpace = v.vertex;
                 o.normal = v.normal;
-                o.uv = masterUvs;
                 return o;
             }
 
             float3 GetCol(float heat, float3 normal, float3 objSpace)
             {
-              float topHeat = pow(saturate(heat), 3);
-              float sideHeat = saturate(heat - .25);
-              float topAlpha = saturate(normal.y + pow(objSpace.y + .5, 5));
-              float lutUv = lerp(sideHeat, topHeat, topAlpha);
-              lutUv -= normal.x * .1;
-              float3 ret = tex2D(_HeatLut, float2(lutUv, 0)).xyz;
-              ret = lerp(pow(ret, 2) * .75, ret, normal.y);
-              ret = pow(ret, 2);
-              return ret;
+                float lutUv = saturate(pow(.25, 1 / heat) * _HeatIntensity); // Maps 0..1, to .9 @ ~13, .75 @ ~5, .5 @ 2, .25 @ 1, .1 @ ~.6, .05 @ ~.45, .01 @ ~.3
+                lutUv -= _UseHexShading == 0 ? 0 : normal.x * .1;
+                float3 ret = tex2D(_HeatLut, float2(lutUv, 0)).xyz;
+                ret = _UseHexShading == 0 ? ret : lerp(pow(ret, 2) * .75, ret, normal.y);
+                ret = lerp(ret, float3(1, 1, 1), (1 - _HeatSaturation));
+                return ret;
             }
 
-            float GetAlpha(float heat, float3 objSpace)
+            float GetAlpha(v2f i)
             {
-              heat *= pow(objSpace.y + .5, 10) * .1 + 1;
-              float alpha = pow(heat, 2);
-              return saturate(alpha);
+              //i.heat *= pow(i.objSpace.y + .5, 10) * .1 + 1;
+              float3 alphaFromTex = tex2D(_HexAlpha, i.uv);
+              float alpha = saturate(pow(.25, 1 / i.heat) * _Opacity) * pow(alphaFromTex.x, 2);
+              return alpha;
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-              float alpha = GetAlpha(i.heat, i.objSpace);
+              float alpha = GetAlpha(i);
               float3 heatColor = GetCol(i.heat, i.normal, i.objSpace);
-              heatColor = lerp(heatColor, alpha, _DrawAlpha);
               return float4(heatColor, alpha);
             }
             ENDCG

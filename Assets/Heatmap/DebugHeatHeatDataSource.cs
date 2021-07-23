@@ -26,8 +26,7 @@ public class DebugHeatHeatDataSource : MonoBehaviour
             Transform proxy = HeatProxies[i];
             Vector3 localPos = mapTransform.transform.InverseTransformPoint(proxy.position);
             data[i].Position = new Vector2(localPos.x + .5f, localPos.z + .5f);
-            data[i].Intensity = Mathf.Clamp01(localPos.y) + .5f;
-            data[i].Dispersion = 1 - data[i].Intensity;
+            data[i].Dispersion = Mathf.Clamp01(localPos.y) + .5f;
         }
         _controller.SetHeatData(data);
     }
