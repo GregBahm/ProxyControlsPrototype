@@ -1,4 +1,4 @@
-Shader "SkirtExample/SphereShader"
+Shader "CutoutSphereShader"
 {
     Properties
     {
@@ -7,8 +7,7 @@ Shader "SkirtExample/SphereShader"
     {
         Pass
         {
-            ColorMask 0
-            Tags { "RenderType" = "Opaque" "Queue" = "Geometry+1"}
+            ColorMask 0 // The "ZTest Greater" in the CutoutBoxShader makes it only draw if it is behind another object. This shader pass will be invisible, but will write depth to trigger the CutoutBoxShader  
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -40,7 +39,8 @@ Shader "SkirtExample/SphereShader"
         }
         Pass
         {
-        Tags { "RenderType" = "Opaque"}
+              // This pass will draw the sphere if it is inside the box
+              // The box is assumed to be set to the origin of the scene, but this code can be extended to allow for the box to move around anywhere
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag

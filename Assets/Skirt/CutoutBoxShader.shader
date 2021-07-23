@@ -1,4 +1,4 @@
-Shader "SkirtExample/BoxShader"
+Shader "CutoutBoxShader"
 {
     Properties
     {
@@ -7,8 +7,7 @@ Shader "SkirtExample/BoxShader"
     {
         Pass
         {
-      ZTest Greater
-            Tags { "RenderType" = "Opaque" }
+            ZTest Greater // This causes the sides of the box to only draw if it is *behind* another object. When combined with the CutoutSphereShader, the box will only draw if it is inside the sphere
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -38,6 +37,7 @@ Shader "SkirtExample/BoxShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
+              return lerp(float4(0, .5, .5, 1), float4(1, .75, .5, 1), i.objSpace.y);
               return float4(i.objSpace.yyy, 1);
             }
             ENDCG
