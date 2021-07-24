@@ -5,6 +5,7 @@
 #pragma kernel Jacobi
 #pragma kernel SubtractGradient
 #pragma kernel SetTerrainVelocity
+#pragma kernel SetTerrainPressure
 
 float _DyeDissipation;
 float _VelocityDissipation;
@@ -39,18 +40,15 @@ float3 _DyeSprayPosition;
 float3 _DyeSprayDirection;
 float _DyeSprayRadius;
 
-struct BoundaryData
-{
-    float3 pixelCoords;
-    float3 insideOffset;
-};
-
-StructuredBuffer<BoundaryData> _BoundaryData; 
-float _BoundaryValue;
-
 float Gaussian(float3 pos, float radius)
 {
     return exp(-dot(pos, pos) / (radius * radius));
+}
+
+float GetTerrainHeight(float3 idToUv)
+{
+  float2 uvs = 1 - idToUv.xz;
+  return Heightmap.SampleLevel(samplerHeightmap, uvs, 0);
 }
 
 [numthreads(16,16,1)]
@@ -66,13 +64,31 @@ void AddDyeSpray(uint3 id : SV_DispatchThreadID)
 
     outputColor = outputColor + readColor;
 
-    float3 outputVelocity = gaussianValue * _DyeSprayDirection;
+    float3 outputVelocity = _DyeSprayDirection;// *gaussianValue;
     float4 readVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
 
     outputVelocity = outputVelocity + readVelocity.rgb;
 
-    _Dye[id] = outputColor;  
-    _Velocity[id] = float4(outputVelocity.rgb, 1);
+    float3 idToUv = idSample / _Resolution;
+    float terrainHeight = GetTerrainHeight(idToUv);
+    bool isOverTerrain = terrainHeight < idToUv.y;
+    if (isOverTerrain)
+    {
+      //float velocityLength = length(outputVelocity.xzy);
+      //if (velocityLength < .001)
+      //{
+      //  outputVelocity = float4(0.005, 0, 0, 1) ;
+      //}
+      _Dye[id] = outputColor;
+      _Velocity[id] = float4(outputVelocity.rgb, 1);
+    }
+    else
+    {
+      _Dye[id] = 1;
+      _Velocity[id] = 0;
+    }
+ 
+    //_Velocity[id] = float4(outputVelocity.rgb, 1);
 }
 
 [numthreads(16,16,1)]
@@ -160,31 +176,51 @@ void ClearTextures(uint3 id : SV_DispatchThreadID)
   _ClearTexture[id] = 0;
 }
 
-float GetTerrainHeight(float3 idToUv)
+[numthreads(16, 16, 1)]
+void SetTerrainPressure(uint3 id : SV_DispatchThreadID)
 {
-  float2 uvs = 1 - idToUv.xz;
-  return Heightmap.SampleLevel(samplerHeightmap, uvs, 0);
-}
+  float3 idSample = float3(id)+float3(0.5, 0.5, 0.5);
+  float4 oldVal = ReadPressure.SampleLevel(samplerReadPressure, idSample / _Resolution, 0);
 
-bool IsOverTerrain(float3 idSample)
-{
+
   float3 idToUv = idSample / _Resolution;
   float terrainHeight = GetTerrainHeight(idToUv);
   terrainHeight += 0.01f; // For some reason the simulation can freak out if terrainHeight = 0
-  return terrainHeight > idToUv.y;
-}
+  bool isOverTerrain = terrainHeight > idToUv.y;
 
+  if (isOverTerrain)
+  {
+    _Pressure[id] = oldVal;
+  }
+  else
+  {
+    _Pressure[id] = oldVal;
+  }
+}
 [numthreads(16, 16, 1)]
 void SetTerrainVelocity(uint3 id : SV_DispatchThreadID)
 {
   float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
   float4 oldVal = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
-  if(IsOverTerrain(idSample))
+
+
+  float3 idToUv = idSample / _Resolution;
+  float terrainHeight = GetTerrainHeight(idToUv);
+  terrainHeight += 0.01f; // For some reason the simulation can freak out if terrainHeight = 0
+  bool isOverTerrain = terrainHeight > idToUv.y;
+
+  if(isOverTerrain)
   {
-    _Velocity[id] = -oldVal;
+    _Velocity[id] = oldVal;
+    //_Velocity[id] = 0;
   }
   else
   {
-  _Velocity[id] = oldVal;
+    //oldVal.x = .05f;
+    //float distToTerrain = idToUv.y - terrainHeight;
+    //float terrainPow = 1 - distToTerrain;
+    //terrainPow = pow(terrainPow, .1);
+    //oldVal.y += terrainPow * .01;
+    _Velocity[id] = oldVal; 
   }
 }

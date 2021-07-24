@@ -1517,7 +1517,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1764591061}
   m_LocalRotation: {x: 0.42807662, y: 0.27036664, z: -0.7845691, w: -0.35791555}
-  m_LocalPosition: {x: 0.578, y: 0.682, z: 0.336}
+  m_LocalPosition: {x: 0.513, y: 0.35, z: 0.542}
   m_LocalScale: {x: 0.03, y: 0.03, z: 0.03}
   m_Children: []
   m_Father: {fileID: 915722709}
@@ -1535,7 +1535,6 @@ GameObject:
   - component: {fileID: 1899616875}
   - component: {fileID: 1899616873}
   - component: {fileID: 1899616874}
-  - component: {fileID: 1899616877}
   m_Layer: 0
   m_Name: VolumeCube
   m_TagString: Untagged
@@ -1550,7 +1549,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1899616872}
-  m_Enabled: 0
+  m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -1603,6 +1602,7 @@ MonoBehaviour:
   timeStep: 0.01
   dyeSprayerScript: {fileID: 1764591062}
   heightMap: {fileID: 2800000, guid: 366b405e15e91d948ad86ecda2843b07, type: 3}
+  FluidSimResolution: {x: 64, y: 64, z: 64}
   displayTexture: 0
   displayCubeMat: {fileID: 2100000, guid: bd54c0ee91b87da4199de453641610bf, type: 2}
   fluidSimulationShader: {fileID: 7200000, guid: fec093ce7d2b59a4285949893e5413a1, type: 3}
@@ -1631,26 +1631,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1899616877
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1899616872}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2bc43a235d026cb409dfb0ec7d3a0abb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  particleSize: 0.02
-  particleLifetime: 1
-  velocityPower: 0.005
-  gridPointMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  particleMat: {fileID: 2100000, guid: b0318764e03563c4e81ae910470084cc, type: 2}
-  particleCount: 50000
-  fluidParticleMover: {fileID: 7200000, guid: 9cc2268d84502aa48bcba0ab7e29d5af, type: 3}
-  boundsSource: {fileID: 202963055}
 --- !u!4 &1904535203 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
@@ -1871,7 +1851,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ace46bf12b3494a4c8285676efa6bf22, type: 3}
@@ -1982,7 +1962,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2103833384
 Transform:
   m_ObjectHideFlags: 0

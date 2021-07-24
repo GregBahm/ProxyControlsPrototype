@@ -24,7 +24,9 @@ namespace Jules.FluidDynamics
         private Texture2D heightMap;
 
         private static readonly Vector3 NumThreads = new Vector3(16, 16, 1);
-        private static readonly Vector3 FluidSimResolution = new Vector3(64, 64, 64);
+
+        [SerializeField]
+        private Vector3 FluidSimResolution = new Vector3(64, 64, 64);
 
         public enum TextureType
         {
@@ -66,6 +68,7 @@ namespace Jules.FluidDynamics
         private int _jacobiKernelIndex;
         private int _subtractGradientKernelIndex;
         private int _setTerrainVelocityKernelIndex;
+        private int _setTerrainPressureKernelIndex;
 
         private static readonly int _velocityTextureId = Shader.PropertyToID("_Velocity");
         private static readonly int _readVelocityId = Shader.PropertyToID("ReadVelocity");
@@ -96,6 +99,7 @@ namespace Jules.FluidDynamics
             _jacobiKernelIndex = fluidSimulationShader.FindKernel("Jacobi");
             _subtractGradientKernelIndex = fluidSimulationShader.FindKernel("SubtractGradient");
             _setTerrainVelocityKernelIndex = fluidSimulationShader.FindKernel("SetTerrainVelocity");
+            _setTerrainPressureKernelIndex = fluidSimulationShader.FindKernel("SetTerrainPressure");
 
             _dyeTexture = CreateTexture();
             _readDyeTexture = CreateTexture();
@@ -118,21 +122,37 @@ namespace Jules.FluidDynamics
         {
             SetShaderProperties();
             Advect();
+
             SwapVelocityTextures();
-            SetTerrainVelocity();
+            SetTerrainVelocity(); 
+            SwapVelocityTextures();
+
             SwapDyeTextures();
-            SwapVelocityTextures();
+
+            
             ComputeDivergence();
+            ClearTexture(_pressureTexture);
             ClearTexture(_readPressureTexture);
+
             for (int i = 0; i < jacobiIterations; i++)
             {
                 RunJacobi();
+                SwapPressureTextures();
+                //SetTerrainPressure();
+                //SwapPressureTextures();
             }
-            SwapPressureTextures();
+            SwapVelocityTextures();
             SubtractGradient();
             SwapVelocityTextures();
 
             displayCubeMat.SetTexture(_mainTexId, GetTexture(displayTexture));
+        }
+
+        private void SetTerrainPressure()
+        {
+            SetPressureTextures(_setTerrainPressureKernelIndex);
+            fluidSimulationShader.SetTexture(_setTerrainPressureKernelIndex, _heightmapId, heightMap);
+            DispatchKernel(_setTerrainPressureKernelIndex);
         }
 
         private void SetTerrainVelocity()
@@ -169,6 +189,7 @@ namespace Jules.FluidDynamics
         {
             SetDyeTextures(_addDyeSprayKernelIndex);
             SetVelocityTextures(_addDyeSprayKernelIndex);
+            fluidSimulationShader.SetTexture(_addDyeSprayKernelIndex, _heightmapId, heightMap);
 
             fluidSimulationShader.SetVector(_dyeColorId, color);
             fluidSimulationShader.SetFloat(_dyeSprayRadiusId, radius);
@@ -254,7 +275,7 @@ namespace Jules.FluidDynamics
             fluidSimulationShader.SetTexture(kernelIndex, _readPressureId, _readPressureTexture);
         }
 
-        private static RenderTexture CreateTexture()
+        private RenderTexture CreateTexture()
         {
             RenderTexture renderTexture = new RenderTexture((int)FluidSimResolution.x, (int)FluidSimResolution.y, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             renderTexture.dimension = TextureDimension.Tex3D;

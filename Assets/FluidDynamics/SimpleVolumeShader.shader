@@ -34,7 +34,7 @@
                 struct appdata
                 {
                     fixed4 vertex : POSITION;
-                    UNITY_VERTEX_INPUT_INSTANCE_ID
+                    UNITY_VERTEX_INPUT_INSTANCE_ID 
                 };
 
                 struct v2f
