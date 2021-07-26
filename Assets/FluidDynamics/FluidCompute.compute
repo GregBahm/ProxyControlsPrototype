@@ -51,7 +51,6 @@ float _BoundaryValue;
 
 float Gaussian(float3 pos, float radius)
 {
-    radius = 2;//TODO: remove this
     return exp(-dot(pos, pos) / (radius * radius));
 }
 
@@ -64,7 +63,6 @@ float GetTerrainHeight(float3 idToUv)
 [numthreads(16,16,1)]
 void AddDyeSpray(uint3 id : SV_DispatchThreadID)
 {
-    float3 resolutionSample = _Resolution - float3(1, 1, 1);
     float3 idSample = float3(id) + float3(0.5, 0.5, 0.5);
     float3 centerToCurrent = idSample - _DyeSprayPosition * _Resolution;
 
@@ -74,23 +72,30 @@ void AddDyeSpray(uint3 id : SV_DispatchThreadID)
 
     outputColor = outputColor + readColor.rgb;
 
-    float3 outputVelocity = _DyeSprayDirection;// *gaussianValue;
-    float4 readVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
-
-    outputVelocity = outputVelocity + readVelocity.rgb;
-
 
     float3 idToUv = idSample / _Resolution;
     float terrainHeight = GetTerrainHeight(idToUv);
-    bool isOverTerrain = terrainHeight < idToUv.y;
-    
+
     float distToHeight = terrainHeight - idToUv.y;
     float terrainEffect = 1 - abs(distToHeight * _DyeSprayRadius);
     terrainEffect = saturate(terrainEffect);
     terrainEffect = pow(terrainEffect, 10);
 
-    outputVelocity = lerp(_DyeSprayDirection, float3(0, 1, 0), terrainEffect);
-    outputVelocity *= isOverTerrain;
+    float3 outputVelocity = _DyeSprayDirection * (1 - terrainEffect);
+    float4 readVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
+    outputVelocity = outputVelocity + readVelocity.rgb;
+    outputVelocity.y -= terrainEffect;
+    bool isOverTerrain = terrainHeight < idToUv.y;
+    if (!isOverTerrain)
+    {
+      outputVelocity = float4(0, 1, 0, 1);
+    }
+
+    //outputVelocity -= _DyeSprayDirection * (1 - terrainEffect);
+
+    //
+    //outputVelocity = lerp(_DyeSprayDirection, float3(0, 1, 0), terrainEffect);
+    //outputVelocity *= isOverTerrain;
     _Dye[id] = float4(outputColor, 1); 
     _Velocity[id] = float4(outputVelocity.rgb, 1); 
 }
@@ -182,7 +187,7 @@ void DrawPressureBoundary(uint3 id : SV_DispatchThreadID)
 
     float pressureValue = ReadPressure.SampleLevel(samplerReadPressure, (index + offset) / _Resolution, 0).x;
     
-    _Pressure[index] = float4(pressureValue * _BoundaryValue, 0, 0, 1);
+   _Pressure[index] = float4(pressureValue * _BoundaryValue, 0, 0, 1);
 } 
 
 [numthreads(16, 1, 1)]
