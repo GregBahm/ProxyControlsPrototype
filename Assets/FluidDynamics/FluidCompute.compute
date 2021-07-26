@@ -85,11 +85,14 @@ void AddDyeSpray(uint3 id : SV_DispatchThreadID)
     bool isOverTerrain = terrainHeight < idToUv.y;
     
     float distToHeight = terrainHeight - idToUv.y;
-    float terrainEffect = 1 - distToHeight;
+    float terrainEffect = 1 - abs(distToHeight * _DyeSprayRadius);
+    terrainEffect = saturate(terrainEffect);
+    terrainEffect = pow(terrainEffect, 10);
 
-    outputVelocity.y += terrainEffect * _DyeSprayRadius;
-    _Dye[id] = float4(terrainEffect.xxx, 1);
-    //_Velocity[id] = float4(outputVelocity.rgb, 1);
+    outputVelocity = lerp(_DyeSprayDirection, float3(0, 1, 0), terrainEffect);
+    outputVelocity *= isOverTerrain;
+    _Dye[id] = float4(outputColor, 1); 
+    _Velocity[id] = float4(outputVelocity.rgb, 1); 
 }
 
 [numthreads(16,16,1)]
