@@ -7,8 +7,6 @@
 #pragma kernel DrawPressureBoundary
 #pragma kernel DrawVelocityBoundary
 
-#define DefaultDyeSprayStrength 1
-
 float _DyeDissipation;
 float _VelocityDissipation;
 float _Timestep;
@@ -18,8 +16,8 @@ RWTexture3D<float4> _Dye;
 RWTexture3D<float4> _Divergence;
 RWTexture3D<float4> _Pressure;
 
-Texture3D<float4> ReadDye;
-SamplerState samplerReadDye;
+Texture3D<float4> ReadDye; 
+SamplerState samplerReadDye; 
 
 Texture3D<float4> ReadVelocity;
 SamplerState samplerReadVelocity;
@@ -31,6 +29,9 @@ Texture3D<float4> ReadPressure;
 SamplerState samplerReadPressure;
 
 RWTexture3D<float4> _ClearTexture;
+
+Texture2D<float4> Heightmap;
+SamplerState samplerHeightmap;
 
 float3 _Resolution;
 
@@ -50,7 +51,14 @@ float _BoundaryValue;
 
 float Gaussian(float3 pos, float radius)
 {
+    radius = 2;//TODO: remove this
     return exp(-dot(pos, pos) / (radius * radius));
+}
+
+float GetTerrainHeight(float3 idToUv)
+{
+  float2 uvs = 1 - idToUv.xz;
+  return Heightmap.SampleLevel(samplerHeightmap, uvs, 0);
 }
 
 [numthreads(16,16,1)]
@@ -66,13 +74,22 @@ void AddDyeSpray(uint3 id : SV_DispatchThreadID)
 
     outputColor = outputColor + readColor.rgb;
 
-    float3 outputVelocity = DefaultDyeSprayStrength * gaussianValue * _DyeSprayDirection;
+    float3 outputVelocity = _DyeSprayDirection;// *gaussianValue;
     float4 readVelocity = ReadVelocity.SampleLevel(samplerReadVelocity, idSample / _Resolution, 0);
 
     outputVelocity = outputVelocity + readVelocity.rgb;
 
-    _Dye[id] = float4(outputColor.rgb, 1);
-    _Velocity[id] = float4(outputVelocity.rgb, 1);
+
+    float3 idToUv = idSample / _Resolution;
+    float terrainHeight = GetTerrainHeight(idToUv);
+    bool isOverTerrain = terrainHeight < idToUv.y;
+    
+    float distToHeight = terrainHeight - idToUv.y;
+    float terrainEffect = 1 - distToHeight;
+
+    outputVelocity.y += terrainEffect * _DyeSprayRadius;
+    _Dye[id] = float4(terrainEffect.xxx, 1);
+    //_Velocity[id] = float4(outputVelocity.rgb, 1);
 }
 
 [numthreads(16,16,1)]

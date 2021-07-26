@@ -40,6 +40,9 @@ public class FluidSimulator : MonoBehaviour
     [SerializeField]
     private ComputeShader fluidSimulationShader = null;
 
+    [SerializeField]
+    private Texture2D heightMap;
+
     private RenderTexture _dyeTexture;
     private RenderTexture _readDyeTexture;
     private RenderTexture _velocityTexture;
@@ -76,13 +79,15 @@ public class FluidSimulator : MonoBehaviour
     private int _dyeSprayDirectionId;
     private int _dyeSprayRadiusId;
     private int _dyeColorId;
+    private int _heightmapId;
 
     private int _mainTexId;
     private int _dyeDissipationId;
     private int _velocityDissipationId;
     private int _timestepId;
 
-    private const int JacobiIterations = 50; 
+    [SerializeField]
+    private int JacobiIterations = 50; 
 
     private void Start()
     {
@@ -111,6 +116,7 @@ public class FluidSimulator : MonoBehaviour
         _boundaryValueId = Shader.PropertyToID("_BoundaryValue");
         _boundaryDataBufferId = Shader.PropertyToID("_BoundaryData");
         _dyeColorId = Shader.PropertyToID("_DyeColor");
+        _heightmapId = Shader.PropertyToID("Heightmap");
 
         _mainTexId = Shader.PropertyToID("_MainTex");
         _dyeDissipationId = Shader.PropertyToID("_DyeDissipation");
@@ -125,14 +131,24 @@ public class FluidSimulator : MonoBehaviour
         _pressureTexture = CreateTexture();
         _readPressureTexture = CreateTexture();
         
-        // Fluid sim properties
-        fluidSimulationShader.SetVector(_resolutionId, FluidSimResolution);
-
         InitializeBoundaryBuffer();
     }
 
+    private void SetMaterialProperties()
+    {
+        fluidSimulationShader.SetVector(_resolutionId, FluidSimResolution);
+        fluidSimulationShader.SetFloat(_dyeDissipationId, dyeDissipation);
+        fluidSimulationShader.SetFloat(_velocityDissipationId, velocityDissipation);
+        fluidSimulationShader.SetFloat(_timestepId, timeStep);
+
+        displayCubeMat.SetTexture(_mainTexId, GetTexture(displayTexture));
+    }
+
+
     private void Update()
     {
+        SetMaterialProperties();
+
         Advect();
         
         DrawVelocityBoundary();
@@ -149,11 +165,6 @@ public class FluidSimulator : MonoBehaviour
         }
         
         SubtractGradient();
-        
-        displayCubeMat.SetTexture(_mainTexId, GetTexture(displayTexture));
-        fluidSimulationShader.SetFloat(_dyeDissipationId, dyeDissipation);
-        fluidSimulationShader.SetFloat(_velocityDissipationId, velocityDissipation);
-        fluidSimulationShader.SetFloat(_timestepId, timeStep);
     }
 
     private Texture GetTexture(TextureType displayTexture)
@@ -249,10 +260,11 @@ public class FluidSimulator : MonoBehaviour
         SetDyeTextures(_addDyeSprayKernelIndex);
         SetVelocityTextures(_addDyeSprayKernelIndex);
 
+        fluidSimulationShader.SetTexture(_addDyeSprayKernelIndex, _heightmapId, heightMap);
         fluidSimulationShader.SetVector(_dyeColorId, color);
         fluidSimulationShader.SetFloat(_dyeSprayRadiusId, radius);
-        fluidSimulationShader.SetFloats(_dyeSprayPositionId, position.x, position.y, position.z);
-        fluidSimulationShader.SetFloats(_dyeSprayDirectionId, direction.x, direction.y, direction.z);
+        fluidSimulationShader.SetVector(_dyeSprayPositionId, position);
+        fluidSimulationShader.SetVector(_dyeSprayDirectionId, direction);
         
         DispatchKernel(_addDyeSprayKernelIndex);
 
