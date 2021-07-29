@@ -86,6 +86,8 @@ public class FluidSimulator : MonoBehaviour
     private int _velocityDissipationId;
     private int _timestepId;
 
+    private int _clearColorId;
+
     [SerializeField]
     private int JacobiIterations = 50; 
 
@@ -122,6 +124,7 @@ public class FluidSimulator : MonoBehaviour
         _dyeDissipationId = Shader.PropertyToID("_DyeDissipation");
         _velocityDissipationId = Shader.PropertyToID("_VelocityDissipation");
         _timestepId = Shader.PropertyToID("_Timestep");
+        _clearColorId = Shader.PropertyToID("_ClearColor");
 
         _dyeTexture = CreateTexture();
         _readDyeTexture = CreateTexture();
@@ -130,7 +133,7 @@ public class FluidSimulator : MonoBehaviour
         _divergenceTexture = CreateTexture();
         _pressureTexture = CreateTexture();
         _readPressureTexture = CreateTexture();
-        
+        ClearTexture(_dyeTexture, Color.cyan);
         InitializeBoundaryBuffer();
     }
 
@@ -155,8 +158,8 @@ public class FluidSimulator : MonoBehaviour
 
         ComputeDivergence();
 
-        ClearTexture(_pressureTexture);
-        ClearTexture(_readPressureTexture);
+        ClearTexture(_pressureTexture, Color.black);
+        ClearTexture(_readPressureTexture, Color.black);
 
         for (int i = 0; i < JacobiIterations; i++)
         {
@@ -249,9 +252,10 @@ public class FluidSimulator : MonoBehaviour
         _boundaryBuffer.SetData(boundaryData);
     }
 
-    private void ClearTexture(RenderTexture texture)
+    private void ClearTexture(RenderTexture texture, Color color)
     {
         fluidSimulationShader.SetTexture(_clearTexturesKernelIndex, _clearTextureId, texture);
+        fluidSimulationShader.SetVector(_clearColorId, color);
         DispatchKernel(_clearTexturesKernelIndex);
     }
 

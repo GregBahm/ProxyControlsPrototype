@@ -4,6 +4,7 @@
     {
         _Alpha("Alpha", float) = 0.02
         [NoScaleOffset]  _Gradient("Color Texture", 2D) = "" {}
+        [NoScaleOffset]  _AlphaTexture("Alpha Texture", 2D) = "" {}
     }
         SubShader
         {
@@ -27,7 +28,7 @@
                 #include "UnityCG.cginc"
 
                 // Maximum amount of raymarching samples
-                #define MAX_STEP_COUNT 128
+                #define MAX_STEP_COUNT 256
 
                 // Allowed floating point inaccuracy
                 #define EPSILON 0.00001f
@@ -51,6 +52,7 @@
                 fixed4 _MainTex_ST;
                 float _Alpha;
                 sampler2D _Gradient;
+                sampler2D _AlphaTexture;
 
                 float _SliceAxis1Min, _SliceAxis1Max; 
                 float _SliceAxis2Min, _SliceAxis2Max;
@@ -121,8 +123,11 @@
                     float data = sampledData.r;
                     float alpha = sampledData.g;
 
-                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
-                    sampledColor.a *= _Alpha;
+                    fixed sampledAlpha = fixed4(tex2D(_AlphaTexture, fixed2(data, 0.5)).xyz, alpha).x;
+                    sampledAlpha = pow(sampledAlpha, 2);
+                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(1 - data, 0.5)).xyz, alpha);
+                    //sampledColor = pow(sampledColor, 2);
+                    sampledColor.a = sampledAlpha * _Alpha;
 
                     return sampledColor;
                 }
@@ -150,8 +155,7 @@
                     fixed3 samplePosition = rayOrigin;
                     fixed4 color = fixed4(0, 0, 0, 0);
 
-                    float stepSize = sqrt(3) / MAX_STEP_COUNT;
-                    [unroll(MAX_STEP_COUNT)]
+                    float stepSize = sqrt(3.0) / MAX_STEP_COUNT;
                     for (int i = 0; i < MAX_STEP_COUNT; i++)
                     {
                         // Accumulate color only within unit cube bounds

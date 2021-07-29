@@ -3,7 +3,7 @@
     Properties
     {
         _Alpha("Alpha", float) = 0.02
-        [NoScaleOffset]  _Gradient("Color Texture", 2D) = "" {}
+      [NoScaleOffset]  _Gradient("Color Texture", 2D) = "" {}
       [Toggle(DO_DEPTH_SORT)] _DoDepthSort("Do Depth Sorting", Int) = 0
     }
         SubShader
@@ -23,12 +23,13 @@
                 CGPROGRAM
                 #pragma vertex vert
                 #pragma fragment frag
+          #pragma shader_feature USE_LUT
           #pragma shader_feature DO_DEPTH_SORT
 
                 #include "UnityCG.cginc"
 
                 // Maximum amount of raymarching samples
-                #define MAX_STEP_COUNT 128
+                #define MAX_STEP_COUNT 256
 
                 // Allowed floating point inaccuracy
                 #define EPSILON 0.00001f
@@ -73,7 +74,7 @@
                 fixed4 BlendUnder(fixed4 color, fixed4 newColor)
                 {
                   float maxPower = 1 - color.a;
-                  float effectiveAlpha = pow(newColor.a * _Alpha, 2) * maxPower;
+                  float effectiveAlpha = pow(newColor.a * _Alpha, .2) * maxPower;
                   color.rgb = lerp(color.rgb, saturate(newColor.rgb * (1.0 / newColor.a)), effectiveAlpha);
                   color.a += effectiveAlpha;
                   color.a = saturate(color.a);
@@ -101,8 +102,7 @@
                     fixed3 rayDirection = normalize(i.ray_d);
                     fixed3 samplePosition = rayOrigin;
                     fixed4 ret = fixed4(1, 1, 1, 0);
-                    float stepSize = sqrt(3) / MAX_STEP_COUNT;
-                    [unroll(MAX_STEP_COUNT)]
+                    float stepSize = sqrt(3.0) / MAX_STEP_COUNT;
                     for (int i = 0; i < MAX_STEP_COUNT; i++)
                     {
                         // Accumulate color only within unit cube bounds
@@ -115,6 +115,8 @@
                         if (depthpasses)
                         { 
                             fixed4 colorData = tex3D(_MainTex, samplePosition + 0.5f);
+                            fixed4 gradient = tex2D(_Gradient, float2(1 - colorData.a, .5));
+                            gradient.a = colorData.a;
                             ret = BlendUnder(ret, colorData);
                             samplePosition += rayDirection * stepSize;
                         }
