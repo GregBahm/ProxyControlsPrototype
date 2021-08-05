@@ -3,25 +3,17 @@
 	Properties{
 
 		_BaseMap ("Base Map", CUBE) = ""{}
-
-		_NormalMap ("Normal Map", 2D) = ""{}
-		_NormalScale ("Normal Scale", Range(0,2)) = 0.5
-
 		_GlossMap ("Gloss Map", CUBE) = ""{}
-		_Glossiness ("Smoothness", Range(-10,10)) = 0.5
-
 		_CloudMap ("Cloud Map", CUBE) = ""{}
-		_CloudColor ("Cloud Color", Color) = (1, 1, 1, 0.5)
-		_ScrollSpeed("ScrollSpeed", Range(-1.0, 1.0)) = 1.0
-
 		_LightsMap ("Lights Map", CUBE) = ""{}
-		[HDR]_LightsColor ("Lights Color", Color) = (1, 1, 1, 0.5)
 
 		_AtmosphereColor("Atmosphere", Color) = (1,1,1,1)
 		_Haze("Haze", Color) = (1,1,1,1)
 
 		_CloudShadowDistance("Cloud Shadow Distance", Range(-1, 1)) = .1
 		_Depth("Light Rays Dist", Float) = 1
+
+			[Toggle(DO_EXTRUDE_LIGHT)] _DoExtrudeLight("Do Extrude Light", Int) = 0
 	}
 
 	SubShader
@@ -34,6 +26,12 @@
 
 			#include "UnityCG.cginc"
 
+struct GlobePoint
+{
+	float3 Position;
+	float3 Velocity;
+};
+			StructuredBuffer<GlobePoint> _PointsBuffer;
 			
 			samplerCUBE _BaseMap;
 
@@ -59,12 +57,12 @@
 				float2 uv : TEXCOORD0;
 				float3 normal : NORMAL;
 				float4 tangent : TANGENT;
+				uint id : SV_VertexID;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
 
 			struct v2f {
 				float4 pos : SV_POSITION;
-				float3 posWorld : TEXCOORD0;
 				float2 uv : TEXCOORD1;
 				half3 localNormal : NORMAL;
 				half3 cloudNormal : TEXCOORD2;
@@ -90,14 +88,15 @@
 				UNITY_INITIALIZE_OUTPUT(v2f, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-				o.posWorld = mul(unity_ObjectToWorld, v.vertex).xyz;
+				float4 modifiedPos = float4(_PointsBuffer[v.id].Position, 1);
+
 				o.uv = v.uv;
-				o.pos = UnityObjectToClipPos(v.vertex);
+				o.pos = UnityObjectToClipPos(modifiedPos);
 
 				o.localNormal = v.normal;
 				o.cloudNormal = GetCloudNormal(v.normal);
         o.worldNormal = UnityObjectToWorldNormal(v.normal);
-				o.worldView = WorldSpaceViewDir(v.vertex);\
+				o.worldView = WorldSpaceViewDir(modifiedPos);
 				return o;
 			}
 
@@ -152,7 +151,7 @@
 			}
 			ENDCG
 		}
-		Blend One One
+			Blend One One
 			ZWrite Off
 			Pass
 			{
@@ -161,8 +160,15 @@
 				#pragma geometry geo
 				#pragma fragment frag
 
+				#pragma shader_feature DO_EXTRUDE_LIGHT
+
 				#include "UnityCG.cginc"
-							#define SliceCount 20
+
+#ifdef DO_EXTRUDE_LIGHT
+				#define SliceCount 20
+#else
+				#define SliceCount 1
+#endif
 
 				struct appdata
 				{
@@ -175,6 +181,7 @@
 						float4 vertex : POSITION;
 						float3 normal : NORMAL;
 						float shade : TEXCOORD2;
+						float3 cloudNormal : TEXCOORD3;
 				};
 
 				struct g2f
@@ -183,11 +190,20 @@
 					float dist : TEXCOORD1;
 					float3 normal : NORMAL;
 					float shade : TEXCOORD2;
+					float3 cloudNormal : TEXCOORD3;
 				};
 
 				samplerCUBE _LightsMap;
 				samplerCUBE _CloudMap;
 			  float _Depth;
+
+				float3 GetCloudNormal(float3 normal)
+				{
+					float angle = _Time.x * .5;
+					float x = normal.x * cos(angle) - normal.z * sin(angle);
+					float z = normal.z * cos(angle) + normal.x * sin(angle);
+					return float3(x, normal.y, z);
+				}
 
 				v2g vert(appdata v)
 				{
@@ -198,6 +214,7 @@
 					float3 worldNormal = UnityObjectToWorldNormal(v.normal);
 					half baseShade = -dot(worldNormal, _WorldSpaceLightPos0);
 					o.shade = 1 - pow(1 - saturate(baseShade), 2);
+					o.cloudNormal = GetCloudNormal(v.normal);
 
 					return o;
 				}
@@ -208,16 +225,19 @@
 					o.dist = dist;
 					o.normal = p[0].normal;
 					o.shade = p[0].shade;
+					o.cloudNormal = p[0].cloudNormal;
 					o.vertex = UnityObjectToClipPos(p[0].vertex + o.normal * offset);
 					triStream.Append(o);
 
 					o.normal = p[1].normal;
 					o.shade = p[1].shade;
+					o.cloudNormal = p[1].cloudNormal;
 					o.vertex = UnityObjectToClipPos(p[1].vertex + o.normal * offset);
 					triStream.Append(o);
 
 					o.normal = p[2].normal;
 					o.shade = p[2].shade;
+					o.cloudNormal = p[2].cloudNormal;
 					o.vertex = UnityObjectToClipPos(p[2].vertex + o.normal * offset);
 					triStream.Append(o);
 				}
@@ -240,11 +260,10 @@
 				{
 						float3 lights = texCUBE(_LightsMap, i.normal);
 						float3 softLight = texCUBElod(_LightsMap, float4(i.normal, 5));
-						float3 clouds = texCUBE(_CloudMap, i.normal);
-						float3 cloudBase = clouds * .01;
-						float3 cloudLight = softLight * clouds;
-						cloudLight *= float3(0	, 0, .5);
-						cloudLight *= (1 - abs(.5 - i.dist) * 2);
+						float3 clouds = texCUBE(_CloudMap, i.cloudNormal);
+						float3 cloudBase = clouds * .01 * i.shade;;
+						float3 cloudLight = pow(softLight * clouds, .9);
+						cloudLight *= lerp(float3(0, .5, 1.5), float3(0 , 0,  1), i.dist) * .1;
 						cloudLight *= i.shade;
 
 						lights = lerp(lights * float3(1, .5, 0), lights * float3(1, 0, 0), i.dist);
