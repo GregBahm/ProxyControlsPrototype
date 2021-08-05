@@ -82,6 +82,7 @@ Material:
     - _CloudShadowDistance: -0.07
     - _ConflictFade: 0
     - _Cutoff: 1
+    - _Depth: 0.0005
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _Fade: 1

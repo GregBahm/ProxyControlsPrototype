@@ -21,6 +21,7 @@
 		_Haze("Haze", Color) = (1,1,1,1)
 
 		_CloudShadowDistance("Cloud Shadow Distance", Range(-1, 1)) = .1
+		_Depth("Light Rays Dist", Float) = 1
 	}
 
 	SubShader
@@ -151,5 +152,109 @@
 			}
 			ENDCG
 		}
-	}
+		Blend One One
+			ZWrite Off
+			Pass
+			{
+				CGPROGRAM
+				#pragma vertex vert
+				#pragma geometry geo
+				#pragma fragment frag
+
+				#include "UnityCG.cginc"
+							#define SliceCount 20
+
+				struct appdata
+				{
+					float4 vertex : POSITION;
+					float3 normal : NORMAL;
+				};
+
+				struct v2g
+				{
+						float4 vertex : POSITION;
+						float3 normal : NORMAL;
+						float shade : TEXCOORD2;
+				};
+
+				struct g2f
+				{
+					float4 vertex : SV_POSITION;
+					float dist : TEXCOORD1;
+					float3 normal : NORMAL;
+					float shade : TEXCOORD2;
+				};
+
+				samplerCUBE _LightsMap;
+				samplerCUBE _CloudMap;
+			  float _Depth;
+
+				v2g vert(appdata v)
+				{
+					v2g o;
+					o.vertex = v.vertex;
+					o.normal = v.normal;
+
+					float3 worldNormal = UnityObjectToWorldNormal(v.normal);
+					half baseShade = -dot(worldNormal, _WorldSpaceLightPos0);
+					o.shade = 1 - pow(1 - saturate(baseShade), 2);
+
+					return o;
+				}
+
+				void ApplyToTristream(v2g p[3], inout TriangleStream<g2f> triStream, float dist, float offset)
+				{
+					g2f o;
+					o.dist = dist;
+					o.normal = p[0].normal;
+					o.shade = p[0].shade;
+					o.vertex = UnityObjectToClipPos(p[0].vertex + o.normal * offset);
+					triStream.Append(o);
+
+					o.normal = p[1].normal;
+					o.shade = p[1].shade;
+					o.vertex = UnityObjectToClipPos(p[1].vertex + o.normal * offset);
+					triStream.Append(o);
+
+					o.normal = p[2].normal;
+					o.shade = p[2].shade;
+					o.vertex = UnityObjectToClipPos(p[2].vertex + o.normal * offset);
+					triStream.Append(o);
+				}
+
+				[maxvertexcount(3 * SliceCount)]
+				void geo(triangle v2g p[3], inout TriangleStream<g2f> triStream)
+				{
+						ApplyToTristream(p, triStream, 1, 0);
+						triStream.RestartStrip();
+						for (int i = 1; i < SliceCount; i++)
+						{
+								float dist = (float)i / SliceCount;
+								float offset = i * _Depth;
+								ApplyToTristream(p, triStream, dist, offset);
+								triStream.RestartStrip();
+						}
+				}
+
+				fixed4 frag(g2f i) : SV_Target
+				{
+						float3 lights = texCUBE(_LightsMap, i.normal);
+						float3 softLight = texCUBElod(_LightsMap, float4(i.normal, 5));
+						float3 clouds = texCUBE(_CloudMap, i.normal);
+						float3 cloudBase = clouds * .01;
+						float3 cloudLight = softLight * clouds;
+						cloudLight *= float3(0	, 0, .5);
+						cloudLight *= (1 - abs(.5 - i.dist) * 2);
+						cloudLight *= i.shade;
+
+						lights = lerp(lights * float3(1, .5, 0), lights * float3(1, 0, 0), i.dist);
+						lights *= 1 - i.dist;
+						lights *= i.shade;
+						lights *= 1 - clouds;
+						float3 ret = lights + cloudBase + cloudLight;
+						return float4(ret, 1);
+				}
+				ENDCG
+			}
+		}
 }
