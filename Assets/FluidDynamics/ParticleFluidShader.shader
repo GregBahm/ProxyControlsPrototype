@@ -19,8 +19,8 @@ Shader "Unlit/ParticleFluidShader"
 
       #include "UnityCG.cginc"
 
-      Buffer<float3> _ParticleBuffer;
-      Buffer<float3> _MeshBuffer;
+      StructuredBuffer<float3> _ParticleBuffer;
+      StructuredBuffer<float3> _MeshBuffer;
 
       struct input
       {

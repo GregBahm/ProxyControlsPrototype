@@ -1,6 +1,6 @@
 #pragma kernel MoveFluidParticles
 
-Buffer<float4> _SourcePositions;
+StructuredBuffer<float4> _SourcePositions;
 RWStructuredBuffer<float4> _ParticleBuffer;
 
 Texture3D<float4> VelocityField;

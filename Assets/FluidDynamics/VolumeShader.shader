@@ -4,6 +4,8 @@
     {
         _MainTex("Texture", 3D) = "white" {}
         _Alpha("Alpha", float) = 0.02
+        _TweedleA("Tweedle A", float) = 1
+        _TweedleB("Tweedle B", float) = 1
         [NoScaleOffset]  _Gradient("Color Texture", 2D) = "" {}
 
         [Toggle(FOCUS_PLANE_ON)]_FocusPlaneOn("Use Focus Plane", Int) = 0
@@ -68,6 +70,9 @@
                 float _SliceAxis2Min, _SliceAxis2Max;
                 float _SliceAxis3Min, _SliceAxis3Max;
 
+                float _TweedleA;
+                float _TweedleB;
+
                 v2f vert(appdata v)
                 {
                     v2f o;
@@ -127,42 +132,21 @@
                     return dot(plane.xyz, pos) + plane.w;
                 }
 
-                fixed4 DataToColor(fixed3 samplePosition, fixed4 focusPlane)
-                {
-                    float dist = abs(DistanceFromPlane(samplePosition, focusPlane));
-
-                    samplePosition = samplePosition + 0.5f;
-                    fixed4 sampledData = tex3D(_MainTex, samplePosition);
-
-                    float data = sampledData.r;
-                    float alpha = sampledData.g;
-#if FOCUS_PLANE_SOFT_CUTOFF_ON
-                    float t = 1.0 - InverseLerp(0, _FocusDropOff, dist);
-                    alpha *= t;
-#else
-                    alpha *= step(dist, _FocusDropOff);
-#endif
-
-                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
-                    sampledColor.a *= _Alpha;
-
-                    return sampledColor;
-                }
 
                 fixed4 DataToColor(fixed3 samplePosition)
                 {
-                    samplePosition = samplePosition + 0.5f;
-                    float2 uv = TRANSFORM_TEX(samplePosition.xz, _MainTex);
-                    float3 uvw = float3(uv.x, samplePosition.y, uv.y);
-                    fixed4 sampledData = tex3D(_MainTex, uvw);
+                  samplePosition = samplePosition + 0.5f;
+                  float2 uv = samplePosition.xz;
+                  float3 uvw = float3(uv.x, samplePosition.y, uv.y);
+                  fixed4 sampledData = tex3D(_MainTex, uvw);
 
-                    float data = sampledData.r;
-                    float alpha = sampledData.g;
+                  float data = sampledData.r;
+                  float alpha = sampledData.g;
+                  data = pow(data, .5) * .7;
+                  fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
+                  sampledColor.a *= _Alpha;
 
-                    fixed4 sampledColor = fixed4(tex2D(_Gradient, fixed2(data, 0.5)).xyz, data == 0 ? 0 : alpha);
-                    sampledColor.a *= _Alpha;
-
-                    return sampledColor;
+                  return saturate(sampledColor);
                 }
 
                 struct frag_out
@@ -215,11 +199,7 @@
 
                         if (max(absSample.x, max(absSample.y, absSample.z)) < 0.5f + EPSILON)
                         {
-#if FOCUS_PLANE_ON
-                            color = BlendUnder(color, DataToColor(samplePosition, objPlane));
-#else
-                            color = BlendUnder(color, DataToColor(samplePosition));
-#endif
+                          color = BlendUnder(color, DataToColor(samplePosition));
                             // color = max(color, DataToColor(samplePosition));
                             // iDepth = i;
                             samplePosition += rayDirection * stepSize;
