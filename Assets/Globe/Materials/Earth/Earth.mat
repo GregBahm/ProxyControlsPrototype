@@ -79,6 +79,7 @@ Material:
     - _BumpScale: 1
     - _ClippingPlaneBorderWidth: 0.063
     - _ClippingRadius: 34.5
+    - _CloudShadowDistance: -0.07
     - _ConflictFade: 0
     - _Cutoff: 1
     - _DetailNormalMapScale: 1
@@ -101,6 +102,7 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
+    - _AtmosphereColor: {r: 0.6839622, g: 0.8073194, b: 1, a: 1}
     - _ClipPlane: {r: 0, g: 1, b: 0, a: 0}
     - _ClipPlaneRadiusLocation: {r: 0, g: 0, b: 0, a: 0}
     - _ClippingPlaneBorderColor: {r: 0.10453009, g: 0.64371043, b: 0.8207547, a: 1}
@@ -108,6 +110,7 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _ConflictColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _Haze: {r: 0.5424528, g: 0.7030795, b: 1, a: 0.34117648}
     - _LightsColor: {r: 1, g: 1, b: 1, a: 0.5}
     - _SeaColor: {r: 0.26699895, g: 0.5022512, b: 0.754717, a: 0}
   m_BuildTextureStacks: []

@@ -2,28 +2,25 @@
 {
 	Properties{
 
-		_Fade ("Fade", Range(0,1)) = 1
-		_GrayScale ("Gray Scale", Range(0,1)) = 1
-        _BaseMap ("Base Map", CUBE) = ""{}
-        _SeaColor ("Sea Color", Color) = (0, 0, 1, 0)
-        _Saturation ("Saturation", Range(0,2)) = 1
+		_BaseMap ("Base Map", CUBE) = ""{}
 
-		[HDR]_ConflictColor ("Conflict Color", Color) = (1, 1, 1, 0.5)
-		_ConflictFade("Conflict Fade", Range(0.0, 1.0)) = 1.0
+		_NormalMap ("Normal Map", 2D) = ""{}
+		_NormalScale ("Normal Scale", Range(0,2)) = 0.5
 
-        _NormalMap ("Normal Map", 2D) = ""{}
-        _NormalScale ("Normal Scale", Range(0,2)) = 0.5
+		_GlossMap ("Gloss Map", CUBE) = ""{}
+		_Glossiness ("Smoothness", Range(-10,10)) = 0.5
 
-        _GlossMap ("Gloss Map", CUBE) = ""{}
-        _Glossiness ("Smoothness", Range(-10,10)) = 0.5
+		_CloudMap ("Cloud Map", CUBE) = ""{}
+		_CloudColor ("Cloud Color", Color) = (1, 1, 1, 0.5)
+		_ScrollSpeed("ScrollSpeed", Range(-1.0, 1.0)) = 1.0
 
-        _CloudMap ("Cloud Map", CUBE) = ""{}
-        _CloudColor ("Cloud Color", Color) = (1, 1, 1, 0.5)
-        _ScrollSpeed("ScrollSpeed", Range(-1.0, 1.0)) = 1.0
+		_LightsMap ("Lights Map", CUBE) = ""{}
+		[HDR]_LightsColor ("Lights Color", Color) = (1, 1, 1, 0.5)
 
-        _LightsMap ("Lights Map", CUBE) = ""{}
-        [HDR]_LightsColor ("Lights Color", Color) = (1, 1, 1, 0.5)
+		_AtmosphereColor("Atmosphere", Color) = (1,1,1,1)
+		_Haze("Haze", Color) = (1,1,1,1)
 
+		_CloudShadowDistance("Cloud Shadow Distance", Range(-1, 1)) = .1
 	}
 
 	SubShader
@@ -36,35 +33,25 @@
 
 			#include "UnityCG.cginc"
 
-			//Global Variables for Lighting
-			uniform half3 _CHAOSMainLightColor = half3(0.95, 0.92, 0.84);
-			uniform half3 _CHAOSAmbientColor = half3(0.079, 0.077, 0.085);
-			uniform float _CHAOSLightMultiplier = 2.0;
-			uniform fixed3 _CHAOSLightDirection = fixed3(.1, .55, .45);
-
-            half _Fade;
-
-			half _GrayScale;
-
+			
 			samplerCUBE _BaseMap;
-            half4 _SeaColor;
-            half _Saturation;
 
-			half4 _ConflictColor;
-			half _ConflictFade;
+			sampler2D _NormalMap;
+			half _NormalScale;
 
-            sampler2D _NormalMap;
-            half _NormalScale;
+			samplerCUBE _GlossMap;
+			half _Glossiness;
 
-            samplerCUBE _GlossMap;
-            half _Glossiness;
+			samplerCUBE _CloudMap;
+			fixed4 _CloudColor;
+			half _ScrollSpeed;
 
-            samplerCUBE _CloudMap;
-            fixed4 _CloudColor;
-            half _ScrollSpeed;
+			samplerCUBE _LightsMap;
+			fixed4 _LightsColor;
 
-            samplerCUBE _LightsMap;
-            fixed4 _LightsColor;
+			fixed4 _AtmosphereColor;
+			fixed4 _Haze;
+			float _CloudShadowDistance;
 
 			struct appdata {
 				float4 vertex : POSITION;
@@ -78,10 +65,21 @@
 				float4 pos : SV_POSITION;
 				float3 posWorld : TEXCOORD0;
 				float2 uv : TEXCOORD1;
-				half3 localNormal : TEXCOORD2;
+				half3 localNormal : NORMAL;
+				half3 cloudNormal : TEXCOORD2;
 				half3 worldNormal : TEXCOORD3;
+				half3 worldView : TEXCOORD4;
+				half3 forward : TEXCOORD5;
 				UNITY_VERTEX_OUTPUT_STEREO
 			};
+
+			float3 GetCloudNormal(float3 normal)
+			{
+        float angle = _Time.x * .5;
+        float x = normal.x * cos(angle) - normal.z * sin(angle);
+        float z = normal.z * cos(angle) + normal.x * sin(angle);
+        return float3(x, normal.y, z);
+			}
 
 			v2f vert(appdata v)
 			{
@@ -95,36 +93,61 @@
 				o.uv = v.uv;
 				o.pos = UnityObjectToClipPos(v.vertex);
 
-                o.localNormal = v.normal;
-
-                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+				o.localNormal = v.normal;
+				o.cloudNormal = GetCloudNormal(v.normal);
+        o.worldNormal = UnityObjectToWorldNormal(v.normal);
+				o.worldView = WorldSpaceViewDir(v.vertex);\
 				return o;
 			}
 
-			inline float PointVsPlane(float3 worldPosition, float4 plane)
-			{
-				float3 planePosition = plane.xyz * plane.w;
-				return dot(worldPosition - planePosition, plane.xyz);
-			}
-
-
 			float4 frag(v2f i) : COLOR
 			{
-                half3 baseCol = texCUBE(_BaseMap, i.localNormal);
-								float3 clouds = texCUBE(_CloudMap, i.localNormal);
-								float3 lights = texCUBE(_LightsMap, i.localNormal);
+				i.worldView = normalize(i.worldView);
+				i.worldNormal = normalize(i.worldNormal);
+				float fresnel = dot(i.worldView, i.worldNormal);
 
-								half3 viewDirection = normalize(UnityWorldSpaceViewDir(i.posWorld));
-								half baseShade = dot(i.worldNormal, _WorldSpaceLightPos0);
+				half3 baseCol = texCUBE(_BaseMap, i.localNormal);
+				float3 cloudShadowNormal = lerp(i.cloudNormal, _WorldSpaceLightPos0, _CloudShadowDistance);
+				float3 cloudShadow = texCUBElod(_CloudMap, float4(cloudShadowNormal, 5));
+				float3 gloss = texCUBE(_GlossMap, i.localNormal);
 
-								float frontLight = 1 - pow(1 - saturate(-baseShade), 2);
-								float3 frontCol = baseCol + clouds;
+				float3 clouds = texCUBE(_CloudMap, i.cloudNormal);
 
-								float backLight = 1 - pow(1 - saturate(baseShade), 2);
-								float3 backCol = lights * 1 - clouds;
-								float3 col = (frontLight * frontCol) + (backLight * backCol);
+				float3 lights = texCUBE(_LightsMap, i.localNormal);
 
-								return float4(col, 1);
+				half baseShade = -dot(i.worldNormal, _WorldSpaceLightPos0);
+
+				float3 halfAngle = normalize(i.worldView + _WorldSpaceLightPos0);
+				float spec = dot(i.worldNormal, halfAngle);
+				float3 shine = pow(saturate(spec), 90) * float3(1, 1, .5);
+				shine += pow(saturate(spec), 30) * float3(1, .2, 0) * .5;
+				shine *= saturate(gloss.x * 5);
+				shine += pow(saturate(spec), 10) * float3(.3, .1, 0) * (1 - saturate(gloss.x * 5));
+
+				//return float4(shine, 1);
+				float3 frontCol = baseCol;
+				frontCol += shine;
+				frontCol = lerp(frontCol, float3(.3, .5, .6), saturate(gloss.x * 5) * .5);
+
+				float atmosphere = pow(1 - fresnel, 1);// *_AtmosphereColor.a;
+				float3 atmosphereCol = lerp(_AtmosphereColor.rgb, _Haze.xyz, atmosphere);
+
+				frontCol = lerp(frontCol, _Haze.xyz, _Haze.a);
+				frontCol -= pow(cloudShadow, 2) * .5;
+				frontCol = lerp(frontCol, 1, pow(clouds, 1) * 1.2);
+				frontCol = lerp(frontCol, atmosphereCol, atmosphere);
+
+				float redShift = pow(1 - abs(baseShade), 10) * pow(fresnel, .5);
+				frontCol = lerp(frontCol, frontCol * float3(2, .75, 0), redShift);
+
+				float frontLight = 1 - pow(1 - saturate(-baseShade), 8);
+				frontLight = max(frontLight, .1);
+				float backLight = 1 - pow(1 - saturate(baseShade), 2);
+				float3 backCol = lights * (1 - clouds * .5);
+				float3 col = saturate(frontLight * frontCol) + saturate(backLight * backCol);
+
+
+				return float4(col, 1);
 			}
 			ENDCG
 		}
