@@ -88,15 +88,15 @@ struct GlobePoint
 				UNITY_INITIALIZE_OUTPUT(v2f, o);
 				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-				float4 modifiedPos = float4(_PointsBuffer[v.id].Position, 1);
+				float4 vert = v.vertex;// float4(_PointsBuffer[v.id].Position, 1);
 
 				o.uv = v.uv;
-				o.pos = UnityObjectToClipPos(modifiedPos);
+				o.pos = UnityObjectToClipPos(vert);
 
 				o.localNormal = v.normal;
 				o.cloudNormal = GetCloudNormal(v.normal);
         o.worldNormal = UnityObjectToWorldNormal(v.normal);
-				o.worldView = WorldSpaceViewDir(modifiedPos);
+				o.worldView = WorldSpaceViewDir(vert);
 				return o;
 			}
 
