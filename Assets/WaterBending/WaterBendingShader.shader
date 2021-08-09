@@ -12,12 +12,14 @@ Shader "Unlit/WaterBendingShader"
     {
         Pass // Interior
         {
+        /*
             Stencil
             {
                 Ref 2
                 Comp Always
                 Pass Replace
             } 
+            */
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -27,12 +29,14 @@ Shader "Unlit/WaterBendingShader"
             fixed4 _HighColor; 
             fixed4 _LowColor;
             float _MaxDist;
+            float3 _OrbFocusPoint;
 
             struct appdata
             {
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f
@@ -42,18 +46,24 @@ Shader "Unlit/WaterBendingShader"
                 float3 normal : NORMAL;
                 float3 viewDir : VIEWDIR;
                 float depth : TEXCOORD1;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             float GetDepth(float4 vertex)
             {
                 float3 worldPos = mul(unity_ObjectToWorld, vertex).xyz;
                 float dist = length(worldPos - _WorldSpaceCameraPos);
-                return dist * _MaxDist;
+                float baseDist = length(_OrbFocusPoint - _WorldSpaceCameraPos);
+                return abs(dist - baseDist) * _MaxDist;
             }
 
             v2f vert(appdata v)
             {
                 v2f o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_OUTPUT(v2f, o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
                 o.normal = v.normal;
@@ -65,12 +75,19 @@ Shader "Unlit/WaterBendingShader"
             fixed4 frag(v2f i) : SV_Target
             {
             fixed4 ret = lerp(_LowColor, _HighColor, i.depth);
-            //ret += shine;
+
+            i.normal = normalize(i.normal);
+            i.viewDir = normalize(i.viewDir);
+            float theDot = dot(i.normal, i.viewDir);
+            float shine = pow(theDot, 100) * 5;
+            shine = saturate(shine) * .2;
+            shine += pow(theDot, 5) * .2;  
+            ret += shine;
             return ret;
             }
             ENDCG
         }
-
+      /*
         ZWrite Off
         //Blend One One
         Blendop Max
@@ -98,6 +115,7 @@ Shader "Unlit/WaterBendingShader"
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f
@@ -107,6 +125,7 @@ Shader "Unlit/WaterBendingShader"
                 float3 normal : NORMAL;
                 float3 viewDir : VIEWDIR;
                 float depth : TEXCOORD1;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             float GetDepth(float4 vertex)
@@ -120,6 +139,10 @@ Shader "Unlit/WaterBendingShader"
             {
                 v.vertex *= _OutlineSize + 1;
                 v2f o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_OUTPUT(v2f, o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
                 o.normal = v.normal;
@@ -141,5 +164,6 @@ Shader "Unlit/WaterBendingShader"
             }
             ENDCG
         }
+        */
     }
 }
