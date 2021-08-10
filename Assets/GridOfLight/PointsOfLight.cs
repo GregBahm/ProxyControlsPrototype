@@ -8,13 +8,23 @@ public class PointsOfLight : MonoBehaviour
 {
     private int vertCount;
     private ComputeBuffer pointsBuffer;
-    private const int POINTS_BUFFER_STRIDE = sizeof(float) * 3;
+    private const int POINTS_BUFFER_STRIDE = sizeof(float) * 5;
 
     private MeshRenderer meshRenderer;
 
     [SerializeField]
     private Material pointsMaterial;
+
+    [SerializeField]
+    private float pointsSize;
+
     private Material matInstance;
+
+    struct LightPoint
+    {
+        public Vector3 Position;
+        public Vector2 Uvs;
+    }
 
     void Start()
     {
@@ -22,7 +32,13 @@ public class PointsOfLight : MonoBehaviour
         Mesh mesh = GetComponent<MeshFilter>().mesh;
         vertCount = mesh.vertexCount;
         pointsBuffer = new ComputeBuffer(vertCount, POINTS_BUFFER_STRIDE);
-        pointsBuffer.SetData(mesh.vertices);
+        LightPoint[] data = new LightPoint[vertCount];
+        for (int i = 0; i < vertCount; i++)
+        {
+            data[i].Position = mesh.vertices[i];
+            data[i].Uvs = mesh.uv[i];
+        }
+        pointsBuffer.SetData(data);
         matInstance = new Material(pointsMaterial);
     }
 
@@ -30,6 +46,7 @@ public class PointsOfLight : MonoBehaviour
     {
         matInstance.SetMatrix("_Transform", transform.localToWorldMatrix);
         matInstance.SetBuffer("_Points", pointsBuffer);
+        matInstance.SetFloat("_Size", pointsSize);
         Graphics.DrawProcedural(matInstance, meshRenderer.bounds, MeshTopology.Points, vertCount);
     }
 
