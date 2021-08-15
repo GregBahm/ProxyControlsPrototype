@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: VolumeMat
+  m_Name: GlacierFluidMat
   m_Shader: {fileID: 4800000, guid: 30b1dcc9332676f4999bc49e78647c47, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
