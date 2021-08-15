@@ -28,6 +28,7 @@ Shader "Unlit/IceShader"
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 objVertex : TEXCOORD1;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2g
@@ -35,6 +36,7 @@ Shader "Unlit/IceShader"
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float hydration : TEXCOORD1;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             struct g2f
@@ -44,6 +46,7 @@ Shader "Unlit/IceShader"
                 float3 objVertex : TEXCOORD1;
                 float3 triLengths : TEXCOORD2;
                 float3 triUvs : TEXCOORD3;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
             
             sampler2D _MainTex;
@@ -64,6 +67,9 @@ Shader "Unlit/IceShader"
             v2g vert (appdata v)
             {
                 v2g o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_OUTPUT(v2g, o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
                 o.vertex = v.vertex;
                 o.uv = v.uv;
@@ -84,17 +90,24 @@ Shader "Unlit/IceShader"
               float maxHydrate = 1 - (_Hydrate / 10);
               hydrationOffset *= pow(p[0].hydration, 4) * .25 * maxHydrate;
 
+
+              UNITY_TRANSFER_VERTEX_OUTPUT_STEREO(p[0], o);
+
               o.uv = p[0].uv;
               o.objVertex = p[0].vertex;
               o.vertex = UnityObjectToClipPos(p[0].vertex + hydrationOffset);
               o.triUvs = float3(1, 0, 0);
               triStream.Append(o);
 
+              UNITY_TRANSFER_VERTEX_OUTPUT_STEREO(p[0], o);
+
               o.uv = p[1].uv;
               o.objVertex = p[1].vertex;
               o.vertex = UnityObjectToClipPos(p[1].vertex + hydrationOffset);
               o.triUvs = float3(0, 1, 0);
               triStream.Append(o);
+
+              UNITY_TRANSFER_VERTEX_OUTPUT_STEREO(p[0], o);
 
               o.uv = p[2].uv;
               o.objVertex = p[2].vertex;
