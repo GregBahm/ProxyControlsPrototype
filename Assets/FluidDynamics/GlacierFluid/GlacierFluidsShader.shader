@@ -29,7 +29,7 @@
                 #define MAX_STEP_COUNT 256
 
                 // Allowed floating point inaccuracy
-                #define EPSILON 0.00001f
+                #define EPSILON 0.001f
 
                 struct appdata
                 {

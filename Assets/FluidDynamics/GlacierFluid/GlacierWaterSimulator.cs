@@ -147,7 +147,8 @@ namespace Jules.FluidDynamics
         {
             foreach (DyeSprayer sprayer in dyeSprayers)
             {
-                SprayDye(sprayer.Color, sprayer.Radius, this.transform.InverseTransformPoint(sprayer.transform.position) + dyeSprayerOffset, sprayer.transform.forward * sprayer.Force);
+                Vector3 dyeSprayerPosition = this.transform.InverseTransformPoint(sprayer.transform.position) + dyeSprayerOffset;
+                SprayDye(sprayer.Color, sprayer.Radius, dyeSprayerPosition, sprayer.transform.forward * sprayer.Force);
             }
         }
 
