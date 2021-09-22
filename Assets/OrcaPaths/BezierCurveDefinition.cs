@@ -4,6 +4,7 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class BezierCurveDefinition : MonoBehaviour
 {
+    public Color Color;
     public Waypoint[] Points;
 
     public bool Draw;
@@ -21,10 +22,14 @@ public class BezierCurveDefinition : MonoBehaviour
                 {
                     float param = (float)(i + 1) / PointsPerSegment;
                     Vector3 newPoint = curves[curveI].PlotPosition(param);
-                    Debug.DrawLine(lastPoint, newPoint);
+                    Debug.DrawLine(lastPoint, newPoint, Color);
                     lastPoint = newPoint;
                 }
             }
+        }
+        foreach (Waypoint waypoint in Points)
+        {
+            waypoint.gameObject.SetActive(Draw);
         }
     }
 

@@ -4,20 +4,43 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class FlightExperiment : MonoBehaviour
+public class OrcaPath : MonoBehaviour
 {
     public BezierCurveDefinition Curve;
     public Orca Orca;
-    public int Iterations;
 
     [Range(0, 1)]
-    public float WhaleProgress = 1;
+    public float PathProgress = 1;
 
     public float JointSpan = .01f;
 
+    public int IndicatorsCount;
+
+    private void Start()
+    {
+        SkinnedMeshRenderer orcaMesh = Orca.gameObject.GetComponentInChildren<SkinnedMeshRenderer>();
+        orcaMesh.material.SetColor("_EmissionColor", Curve.Color);
+        foreach(Waypoint waypoint in Curve.Points)
+        {
+            MeshRenderer waypointMesh = waypoint.gameObject.GetComponent<MeshRenderer>();
+            waypointMesh.material.color = Curve.Color;
+        }
+
+        BezierCurveChain chain = Curve.GetCurveChain();
+        for (int i = 1; i < IndicatorsCount; i++)
+        {
+            GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            float param = (float)i / IndicatorsCount;
+            param *= Curve.Points.Length;
+            Vector3 pos = chain.PlotPosition(param);
+            box.transform.position = pos;
+            box.transform.localScale = new Vector3(.1f, .1f, .1f);
+        }
+    }
+
     private void Update()
     {
-        PlaceOnPath(Orca, WhaleProgress, JointSpan);
+        PlaceOnPath(Orca, PathProgress, JointSpan);
     }
 
     private void PlaceOnPath(Orca orca, float param, float jointSpan)
@@ -33,8 +56,6 @@ public class FlightExperiment : MonoBehaviour
 
             Vector3 lookTarget = chain.PlotPosition(jointParam - jointSpan);
             orca.Joints[i].LookAt(lookTarget);
-
-            Debug.DrawLine(jointPos, lookTarget);
         }
     }
 }
