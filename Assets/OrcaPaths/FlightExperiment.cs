@@ -7,17 +7,19 @@ using UnityEngine;
 public class FlightExperiment : MonoBehaviour
 {
     public Waypoint[] Waypoints;
-    public GameObject Orca;
+    public Orca Orca;
     public int Iterations;
 
     public float RotationUpWeight;
     public float RotationStrength;
 
-    [Range(0, 1)]
+    [Range(0, 3)]
     public float WhaleProgress = 1;
 
     [Range(0, 1)]
-    public float ShipScale = 1;
+    public float OrcaIterationScale = 1;
+
+    public float JointSpan = .01f;
 
     private OrcaPathDisplay[] pathSegments;
 
@@ -55,16 +57,35 @@ public class FlightExperiment : MonoBehaviour
     {
         if(Mode == FlightExperimentMode.One)
         {
-            Orca.SetActive(true);
-            int pathSegmentsDisplay = (int)Math.Min(pathSegments.Length - 1, pathSegments.Length * WhaleProgress);
-            OrcaPathDisplay segment = pathSegments[pathSegmentsDisplay];
-            float segmentParam = (WhaleProgress * pathSegments.Length) % 1;
-            segment.PlaceOnPath(Orca.transform, segmentParam);
+            Orca.gameObject.SetActive(true);
+            PlaceOnPath(Orca, WhaleProgress, JointSpan);
         }
         else
         {
-            Orca.SetActive(false);
+            Orca.gameObject.SetActive(false);
         }
+    }
+
+    private void PlaceOnPath(Orca orca, float param, float jointSpan)
+    {
+        BezierCurveChain chain = GetChain();
+        orca.Joints[0].position = chain.PlotPosition(param);
+        for (int i = 0; i < orca.Joints.Length; i++)
+        {
+            float jointParam = param - i * jointSpan;
+            Vector3 jointPos = chain.PlotPosition(jointParam);
+            orca.Joints[i].position = jointPos;
+
+            Vector3 lookTarget = chain.PlotPosition(jointParam - jointSpan);
+            orca.Joints[i].LookAt(lookTarget);
+
+            Debug.DrawLine(jointPos, lookTarget);
+        }
+    }
+
+    private BezierCurveChain GetChain()
+    {
+        return new BezierCurveChain(pathSegments.Select(item => item.GetCurrentPath()));
     }
 
     private void UpdateManyMode()
@@ -87,7 +108,7 @@ public class FlightExperiment : MonoBehaviour
     {
         for (int i = 0; i < Iterations; i++)
         {
-            GameObject newShip = Instantiate(Orca);
+            GameObject newShip = Instantiate(Orca.gameObject);
             Orca orca = newShip.GetComponent<Orca>();
             yield return orca;
         }
@@ -121,18 +142,6 @@ public class OrcaPathDisplay
         }
     }
 
-    public void PlaceOnPath(Transform obj, float param)
-    {
-        float paramIndex = param * orcaIterations.Length;
-        float subParam = paramIndex % 1;
-        int low = Mathf.FloorToInt(paramIndex);
-        int high = Mathf.CeilToInt((int)Mathf.Min(orcaIterations.Length - 1, paramIndex));
-        Orca orcaA = orcaIterations[low];
-        Orca orcaB = orcaIterations[high];
-        obj.position = Vector3.Lerp(orcaA.transform.position, orcaB.transform.position, subParam);
-        obj.rotation = Quaternion.Lerp(orcaA.transform.rotation, orcaB.transform.rotation, subParam);
-    }
-
     public void SetIterations(Vector3 fromPosition, Vector3 fromUp)
     {
         FlightPath flightPath = new FlightPath(GetCurrentPath(),
@@ -145,7 +154,7 @@ public class OrcaPathDisplay
         for (int i = 0; i < orcaIterations.Length; i++)
         {
             orcaIterations[i].gameObject.SetActive(true);
-            orcaIterations[i].transform.localScale = new Vector3(mothership.ShipScale, mothership.ShipScale, mothership.ShipScale);
+            orcaIterations[i].transform.localScale = new Vector3(mothership.OrcaIterationScale, mothership.OrcaIterationScale, mothership.OrcaIterationScale);
             orcaIterations[i].transform.position = flightPath.Poses[i].position;
             orcaIterations[i].transform.rotation = flightPath.Poses[i].rotation;
         }
@@ -159,5 +168,23 @@ public class OrcaPathDisplay
             startAnchor,
             EndPoint.transform.position,
             endAnchor);
+    }
+}
+
+public class BezierCurveChain
+{
+    private readonly IReadOnlyList<BezierCurve> curves;
+
+    public BezierCurveChain(IEnumerable<BezierCurve> curves)
+    {
+        this.curves = curves.ToList();
+    }
+
+    public Vector3 PlotPosition(float param)
+    {
+        int curveIndex = Mathf.Min(curves.Count, Mathf.FloorToInt(param));
+        BezierCurve curve = curves[curveIndex];
+        float subParam = param % 1;
+        return curve.PlotPosition(subParam);
     }
 }

@@ -10,4 +10,11 @@ public class Orca : MonoBehaviour
     public Transform Joint4;
     public Transform Joint5;
     public Transform Joint6;
+
+    public Transform[] Joints { get; private set; }
+
+    private void Awake()
+    {
+        Joints = new Transform[] { Joint1, Joint2, Joint3, Joint4, Joint5, Joint6 };
+    }
 }
