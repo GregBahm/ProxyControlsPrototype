@@ -7,7 +7,8 @@ public class CustomLineRenderer : MonoBehaviour
 {
     public Material Mat;
     public BoxCollider BoundsSource;
-    public const int LineResolution = 128;
+    public const int LineResolution = 1024;
+    public const int LinesCount = 32;
 
     void Start()
     {
@@ -15,6 +16,6 @@ public class CustomLineRenderer : MonoBehaviour
 
     void Update()
     {
-        Graphics.DrawProcedural(Mat, BoundsSource.bounds, MeshTopology.Lines, LineResolution);
+        Graphics.DrawProcedural(Mat, BoundsSource.bounds, MeshTopology.LineStrip, LineResolution, LinesCount);
     }
 }
