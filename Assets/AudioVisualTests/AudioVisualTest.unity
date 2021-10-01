@@ -304,10 +304,12 @@ MonoBehaviour:
   Lines: 32
   LineSource: {fileID: 2800000, guid: 6d81b54245f546441ae81fa7a6592e2f, type: 3}
   UpdatePositions: 1
-  LineThickness: 0.002
+  LineThickness: 0.004
   StartColor: {r: 0, g: 0.806797, b: 1, a: 1}
   EndColor: {r: 1, g: 0.9048885, b: 0, a: 1}
   Diskify: 0
+  RotationCenter: {x: 0, y: 0, z: 0}
+  Smoothing: 0.5
 --- !u!4 &1039687424
 Transform:
   m_ObjectHideFlags: 0
@@ -317,7 +319,7 @@ Transform:
   m_GameObject: {fileID: 1039687422}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 0.25, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 6
@@ -457,8 +459,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1459035199}
-  m_LocalRotation: {x: 0.24050601, y: -0.06770023, z: 0.009685085, w: 0.9682354}
-  m_LocalPosition: {x: 0.15261923, y: 0.56374115, z: -1.0563377}
+  m_LocalRotation: {x: -0.24803069, y: 0.6202496, z: -0.21768525, w: -0.71160686}
+  m_LocalPosition: {x: 1.7478878, y: 1.0744597, z: 0.09167838}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
