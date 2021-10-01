@@ -53,7 +53,7 @@ Shader "Unlit/LineTest"
             float4 GetBaseClipPos(float x, float z)
             {
                 float textureSample = tex2Dlod(_MainTex, float4(x, z, 0, 0)).x;
-                //textureSample = sin(x * _UvVal);
+                textureSample = sin(x * _UvVal);
                 textureSample *= _Height;
                 float4 worldSpacePos = float4(x - .5, textureSample, z - .5, 1);
                 return UnityObjectToClipPos(worldSpacePos);
@@ -112,7 +112,7 @@ Shader "Unlit/LineTest"
             fixed4 frag(g2f i) : SV_Target
             {
               float col = pow(i.height, 2);
-              return float4(col, 0, i.uvs.z, 1);
+              return float4(i.uvs.x, 0, i.uvs.z, 1);
             }
             ENDCG
         }

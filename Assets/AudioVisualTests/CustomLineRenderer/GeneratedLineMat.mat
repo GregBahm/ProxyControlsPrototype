@@ -63,8 +63,8 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _Height: 0.13
-    - _LineThickness: 0.001
+    - _Height: 0.1
+    - _LineThickness: 0.004
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
@@ -74,7 +74,7 @@ Material:
     - _SrcBlend: 1
     - _Thickness: 0.01
     - _UVSec: 0
-    - _UvVal: 51.76
+    - _UvVal: -39.85
     - _ZWrite: 1
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
