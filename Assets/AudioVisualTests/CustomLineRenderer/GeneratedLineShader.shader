@@ -59,7 +59,7 @@ Shader "Unlit/LineTest"
                 return UnityObjectToClipPos(worldSpacePos);
             }
 
-            float4 GetVert(float a, float b, float2 c, float z, float thickness, bool floop)
+            float4 GetVert(float a, float b, float2 c, float z, float thickness)
             {
 
                 float4 aPos = GetBaseClipPos(a, z);
@@ -72,18 +72,12 @@ Shader "Unlit/LineTest"
 
                 float2 average = normalize((abNorm + bcNorm) * .5);
 
-                if (average.y < 0)
-                {
-                  average *= -1;
-                }
-                //average *= floop;
-
                 float4 finalOffset = float4(-average.y * thickness, average.x * thickness, 0, 0);
                 finalOffset /= _ScreenParams;
                 return bPos + finalOffset;
             }
 
-            void DoOneSide(v2g start, inout TriangleStream<g2f> triStream, bool floop)
+            void DoOneSide(v2g start, inout TriangleStream<g2f> triStream)
             {
               g2f o;
 
@@ -95,10 +89,10 @@ Shader "Unlit/LineTest"
               float endPoint = ((float)vertId + 1) / LINE_RESOLUTION;
               float afterEndPoint = ((float)vertId + 2) / LINE_RESOLUTION;
 
-              float4 vertA = GetVert(beforeStartPoint, startPoint, endPoint, lineParam, _LineThickness, floop);
-              float4 vertB = GetVert(beforeStartPoint, startPoint, endPoint, lineParam, -_LineThickness, floop);
-              float4 vertC = GetVert(startPoint, endPoint, afterEndPoint, lineParam, _LineThickness, floop);
-              float4 vertD = GetVert(startPoint, endPoint, afterEndPoint, lineParam, -_LineThickness, floop);
+              float4 vertA = GetVert(beforeStartPoint, startPoint, endPoint, lineParam, _LineThickness);
+              float4 vertB = GetVert(beforeStartPoint, startPoint, endPoint, lineParam, -_LineThickness);
+              float4 vertC = GetVert(startPoint, endPoint, afterEndPoint, lineParam, _LineThickness);
+              float4 vertD = GetVert(startPoint, endPoint, afterEndPoint, lineParam, -_LineThickness);
 
 
               o.vertex = vertA;
@@ -120,9 +114,7 @@ Shader "Unlit/LineTest"
             [maxvertexcount(8)]
             void geo(line v2g p[2], inout TriangleStream<g2f> triStream)
             {
-              DoOneSide(p[0], triStream, true);
-              triStream.RestartStrip();
-              DoOneSide(p[0], triStream, false);
+              DoOneSide(p[0], triStream);
             }
 
             fixed4 frag(g2f i) : SV_Target
