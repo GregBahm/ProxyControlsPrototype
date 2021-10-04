@@ -4,7 +4,8 @@ Shader "Unlit/LineTest"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _UvVal("UV Val", Float) = 0.5
-        _LineThickness("Thickness", Float) = 1
+        _DebugVal("Debug Val", Float) = 0.5
+        _Thickness("Thickness", Float) = 1
         _Height("Height", Float) = 1
     }
     SubShader
@@ -21,7 +22,7 @@ Shader "Unlit/LineTest"
 
             #include "UnityCG.cginc"
 
-#define LINE_RESOLUTION 1024
+#define LINE_RESOLUTION 64
 #define LINES_COUNT 32
 
             struct v2g
@@ -39,8 +40,9 @@ Shader "Unlit/LineTest"
 
             sampler2D _MainTex;
             float _UvVal;
-            float _LineThickness;
+            float _Thickness;
             float _Height;
+            float _DebugVal;
 
             v2g vert (uint vertId : SV_VertexID, uint lineId : SV_InstanceID)
             {
@@ -50,75 +52,63 @@ Shader "Unlit/LineTest"
                 return o;
             }
 
-            float4 GetBaseClipPos(float x, float z)
+            float3 GetWorldPos(float x, float z)
             {
                 float textureSample = tex2Dlod(_MainTex, float4(x, z, 0, 0)).x;
                 textureSample = sin(x * _UvVal);
                 textureSample *= _Height;
-                float4 worldSpacePos = float4(x - .5, textureSample, z - .5, 1);
-                return UnityObjectToClipPos(worldSpacePos);
+                return float3(x - .5, textureSample, z - .5);
             }
 
-            float4 GetVert(float a, float b, float2 c, float z, float thickness)
+            float4 GetClipPos(float3 worldPos, float2 offset)
             {
-
-                float4 aPos = GetBaseClipPos(a, z);
-                float4 bPos = GetBaseClipPos(b, z);
-                float4 cPos = GetBaseClipPos(c, z);
-
-                float2 abNorm = normalize(bPos.xy - aPos.xy);
-                float2 bcNorm = normalize(cPos.xy - bPos.xy);
-
-
-                float2 average = normalize((abNorm + bcNorm) * .5);
-
-                float4 finalOffset = float4(-average.y * thickness, average.x * thickness, 0, 0);
-                finalOffset /= _ScreenParams;
-                return bPos + finalOffset;
+                return mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, float4(worldPos, 1)) + float4(offset, 0, 0));
             }
 
-            void DoOneSide(v2g start, inout TriangleStream<g2f> triStream)
+            [maxvertexcount(4)]
+            void geo(line v2g p[2], inout TriangleStream<g2f> triStream)
             {
               g2f o;
 
-              uint vertId = start.vertId;
-              float lineParam = (float)start.lineId / LINES_COUNT;
+              uint vertId = p[0].vertId;
+              float lineParam = (float)p[0].lineId / LINES_COUNT;
 
-              float beforeStartPoint = ((float)vertId - 1) / LINE_RESOLUTION;
               float startPoint = ((float)vertId) / LINE_RESOLUTION;
               float endPoint = ((float)vertId + 1) / LINE_RESOLUTION;
-              float afterEndPoint = ((float)vertId + 2) / LINE_RESOLUTION;
 
-              float4 vertA = GetVert(beforeStartPoint, startPoint, endPoint, lineParam, _LineThickness);
-              float4 vertB = GetVert(beforeStartPoint, startPoint, endPoint, lineParam, -_LineThickness);
-              float4 vertC = GetVert(startPoint, endPoint, afterEndPoint, lineParam, _LineThickness);
-              float4 vertD = GetVert(startPoint, endPoint, afterEndPoint, lineParam, -_LineThickness);
+              float3 startWorldPos = GetWorldPos(startPoint, lineParam);
+              float3 endWorldPos = GetWorldPos(endPoint, lineParam);
 
+              float3 startViewPos = UnityObjectToViewPos(startWorldPos);
+              float3 endViewPos = UnityObjectToViewPos(endWorldPos);
+
+              float2 lineNorm = normalize(startViewPos.xy - endViewPos.xy);
+              float2 lineOffset = float2(-lineNorm.y * _Thickness, lineNorm.x * _Thickness);// / _ScreenParams;
+
+              float4 vertA = GetClipPos(startWorldPos, lineOffset);
+              float4 vertB = GetClipPos(startWorldPos, -lineOffset);
+              float4 vertC = GetClipPos(endWorldPos, lineOffset);
+              float4 vertD = GetClipPos(endWorldPos, -lineOffset);
 
               o.vertex = vertA;
-              o.uvs = float3(startPoint, 1, lineParam);
+              o.uvs = 0;// float3(startPoint, 1, lineParam);
               o.height = tex2Dlod(_MainTex, float4(startPoint, lineParam, 0, 0)).x;
               triStream.Append(o);
               o.vertex = vertB;
-              o.uvs = float3(startPoint, 0, lineParam);
+              o.uvs = float3(1, 0, 0);// float3(startPoint, 0, lineParam);
               triStream.Append(o);
               o.vertex = vertC;
-              o.uvs = float3(endPoint, 1, lineParam);
+              o.uvs = float3(0, 1, 0); float3(endPoint, 1, lineParam);
               o.height = tex2Dlod(_MainTex, float4(endPoint, lineParam, 0, 0)).x;
               triStream.Append(o);
               o.vertex = vertD;
-              o.uvs = float3(endPoint, 0, lineParam);
+              o.uvs = float3(0, 0, 1);// float3(endPoint, 0, lineParam);
               triStream.Append(o);
-            }
-
-            [maxvertexcount(8)]
-            void geo(line v2g p[2], inout TriangleStream<g2f> triStream)
-            {
-              DoOneSide(p[0], triStream);
             }
 
             fixed4 frag(g2f i) : SV_Target
             {
+              return float4(i.uvs, 1);
               return i.uvs.y;
               float col = pow(i.height, 2);
               return float4(i.uvs.x, 0, i.uvs.z, 1);
