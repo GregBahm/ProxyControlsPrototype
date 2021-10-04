@@ -8,7 +8,7 @@ public class CustomLineRenderer : MonoBehaviour
     public Material Mat;
     public BoxCollider BoundsSource;
     public const int LineResolution = 1024;
-    public const int LinesCount = 32;
+    public const int LinesCount = 1;
 
     void Start()
     {
