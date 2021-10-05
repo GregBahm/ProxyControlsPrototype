@@ -4,7 +4,7 @@ Shader "Unlit/LineTest"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _UvVal("UV Val", Float) = 0.5
-        _DebugVal("Debug Val", Float) = 0.5
+        _Softness("Softness", Range(0, 10)) = 0
         _Thickness("Thickness", Float) = 1
         _Height("Height", Float) = 1
     }
@@ -13,7 +13,7 @@ Shader "Unlit/LineTest"
         Tags { "RenderType"="Opaque" }
         LOD 100
         Cull Off
-        Pass
+        Pass // Tube Pass
         {
             CGPROGRAM
             #pragma vertex vert
@@ -22,8 +22,8 @@ Shader "Unlit/LineTest"
 
             #include "UnityCG.cginc"
 
-#define LINE_RESOLUTION 64
-#define LINES_COUNT 32
+#define LINE_RESOLUTION 512
+#define LINES_COUNT 8
 
             struct v2g
             {
@@ -35,11 +35,10 @@ Shader "Unlit/LineTest"
             {
                 float4 vertex : SV_POSITION;
                 float3 uvs : TEXCOORD0;
-                float height : TEXCOORD1;
             };
 
             sampler2D _MainTex;
-            float _UvVal;
+            float _Softness;
             float _Thickness;
             float _Height;
             float _DebugVal;
@@ -52,10 +51,9 @@ Shader "Unlit/LineTest"
                 return o;
             }
 
-            float3 GetWorldPos(float x, float z)
+            float3 GetWorldPos(float x, float textureSample, float z)
             {
-                float textureSample = tex2Dlod(_MainTex, float4(x, z, 0, 0)).x;
-                textureSample = sin(x * _UvVal);
+                //textureSample -= .5;
                 textureSample *= _Height;
                 return float3(x - .5, textureSample, z - .5);
             }
@@ -65,53 +63,105 @@ Shader "Unlit/LineTest"
                 return mul(UNITY_MATRIX_P, mul(UNITY_MATRIX_V, float4(worldPos, 1)) + float4(offset, 0, 0));
             }
 
-            [maxvertexcount(4)]
+            float3 GetNormal(float3 prevWorldPos, float3 currentWorldPos, float3 nextWorldPos)
+            {
+              float3 prevNorm = normalize(prevWorldPos - currentWorldPos);
+              float3 nextNorm = normalize(currentWorldPos - nextWorldPos);
+              return normalize((prevNorm + nextNorm) * .5);
+            }
+
+            [maxvertexcount(10)]
             void geo(line v2g p[2], inout TriangleStream<g2f> triStream)
             {
-              g2f o;
-
               uint vertId = p[0].vertId;
               float lineParam = (float)p[0].lineId / LINES_COUNT;
 
+              float prevPoint = ((float)vertId -1) / LINE_RESOLUTION;
               float startPoint = ((float)vertId) / LINE_RESOLUTION;
               float endPoint = ((float)vertId + 1) / LINE_RESOLUTION;
+              float futurePoint = ((float)vertId + 2) / LINE_RESOLUTION;
 
-              float3 startWorldPos = GetWorldPos(startPoint, lineParam);
-              float3 endWorldPos = GetWorldPos(endPoint, lineParam);
+              float prevSample = tex2Dlod(_MainTex, float4(prevPoint, lineParam, 0, _Softness)).x;
+              float startSample = tex2Dlod(_MainTex, float4(startPoint, lineParam, 0, _Softness)).x;
+              float endSample = tex2Dlod(_MainTex, float4(endPoint, lineParam, 0, _Softness)).x;
+              float futureSample = tex2Dlod(_MainTex, float4(futurePoint, lineParam, 0, _Softness)).x;
 
-              float3 startViewPos = UnityObjectToViewPos(startWorldPos);
-              float3 endViewPos = UnityObjectToViewPos(endWorldPos);
+              float3 prevWorldPos = GetWorldPos(prevPoint, prevSample, lineParam);
+              float3 startWorldPos = GetWorldPos(startPoint, startSample, lineParam);
+              float3 endWorldPos = GetWorldPos(endPoint, endSample, lineParam);
+              float3 futureWorldPos = GetWorldPos(futurePoint, futureSample, lineParam);
 
-              float2 lineNorm = normalize(startViewPos.xy - endViewPos.xy);
-              float2 lineOffset = float2(-lineNorm.y * _Thickness, lineNorm.x * _Thickness);// / _ScreenParams;
+              float3 startNormal = GetNormal(prevWorldPos, startWorldPos, endWorldPos);
+              float3 startBinormal = normalize(cross(startNormal, float3(0, 1, 0)));
+              float3 startTangent = normalize(cross(startNormal, startBinormal));
 
-              float4 vertA = GetClipPos(startWorldPos, lineOffset);
-              float4 vertB = GetClipPos(startWorldPos, -lineOffset);
-              float4 vertC = GetClipPos(endWorldPos, lineOffset);
-              float4 vertD = GetClipPos(endWorldPos, -lineOffset);
+              float3 endNormal = GetNormal(startWorldPos, endWorldPos, futureWorldPos);
+              float3 endBinormal = normalize(cross(endNormal, float3(0, 1, 0)));
+              float3 endTangent = normalize(cross(endNormal, endBinormal));
 
-              o.vertex = vertA;
-              o.uvs = 0;// float3(startPoint, 1, lineParam);
-              o.height = tex2Dlod(_MainTex, float4(startPoint, lineParam, 0, 0)).x;
+              float3 startA = startWorldPos + (startBinormal + startTangent) * _Thickness;
+              float3 startB = startWorldPos + (startBinormal - startTangent) * _Thickness;
+              float3 startC = startWorldPos + (-startBinormal - startTangent) * _Thickness;
+              float3 startD = startWorldPos + (-startBinormal + startTangent) * _Thickness;
+
+              float3 endA = endWorldPos + (endBinormal + endTangent) * _Thickness;
+              float3 endB = endWorldPos + (endBinormal - endTangent) * _Thickness;
+              float3 endC = endWorldPos + (-endBinormal - endTangent) * _Thickness;
+              float3 endD = endWorldPos + (-endBinormal + endTangent) * _Thickness;
+
+              float3 startUvs = float3(startPoint, lineParam, startSample);
+              float3 endUvs = float3(endPoint, lineParam, endSample);
+
+              //startA.y = 0;
+              //startD.y = 0;
+              //endA.y = 0;
+              //endD.y = 0;
+
+              g2f o;
+              o.vertex = UnityObjectToClipPos(startA);
+              o.uvs = startUvs;
               triStream.Append(o);
-              o.vertex = vertB;
-              o.uvs = float3(1, 0, 0);// float3(startPoint, 0, lineParam);
+
+              o.vertex = UnityObjectToClipPos(endA);
+              o.uvs = endUvs;
               triStream.Append(o);
-              o.vertex = vertC;
-              o.uvs = float3(0, 1, 0); float3(endPoint, 1, lineParam);
-              o.height = tex2Dlod(_MainTex, float4(endPoint, lineParam, 0, 0)).x;
+
+              o.vertex = UnityObjectToClipPos(startB);
+              o.uvs = startUvs;
               triStream.Append(o);
-              o.vertex = vertD;
-              o.uvs = float3(0, 0, 1);// float3(endPoint, 0, lineParam);
+
+              o.vertex = UnityObjectToClipPos(endB);
+              o.uvs = endUvs;
+              triStream.Append(o);
+
+              o.vertex = UnityObjectToClipPos(startC);
+              o.uvs = startUvs;
+              triStream.Append(o);
+
+              o.vertex = UnityObjectToClipPos(endC);
+              o.uvs = endUvs;
+              triStream.Append(o);
+
+              o.vertex = UnityObjectToClipPos(startD);
+              o.uvs = startUvs;
+              triStream.Append(o);
+
+              o.vertex = UnityObjectToClipPos(endD);
+              o.uvs = endUvs;
+              triStream.Append(o);
+
+              o.vertex = UnityObjectToClipPos(startA);
+              o.uvs = startUvs;
+              triStream.Append(o);
+
+              o.vertex = UnityObjectToClipPos(endA);
+              o.uvs = endUvs;
               triStream.Append(o);
             }
 
             fixed4 frag(g2f i) : SV_Target
             {
               return float4(i.uvs, 1);
-              return i.uvs.y;
-              float col = pow(i.height, 2);
-              return float4(i.uvs.x, 0, i.uvs.z, 1);
             }
             ENDCG
         }
