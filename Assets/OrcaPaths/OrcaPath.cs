@@ -4,13 +4,16 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class OrcaPath : MonoBehaviour
+public class OrcaPath : MonoBehaviour, ISplineSource
 {
     public BezierCurveDefinition Curve;
     public Orca Orca;
 
     [Range(0, 1)]
     public float PathProgress = 1;
+
+    public float AbsolutePosition { get { return PathProgress; } }
+    public float RelativePosition { get { return PathProgress; } }
 
     public float JointSpan = .01f;
 
@@ -38,9 +41,16 @@ public class OrcaPath : MonoBehaviour
         }
     }
 
+    public Vector3 GetPositionAt(float param)
+    {
+        param *= Curve.Points.Length;
+        BezierCurveChain chain = Curve.GetCurveChain();
+        return chain.PlotPosition(param);
+    }
+
     private void Update()
     {
-        PlaceOnPath(Orca, PathProgress, JointSpan);
+        //PlaceOnPath(Orca, PathProgress, JointSpan);
     }
 
     private void PlaceOnPath(Orca orca, float param, float jointSpan)
