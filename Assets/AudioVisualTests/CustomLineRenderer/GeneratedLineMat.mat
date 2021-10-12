@@ -65,14 +65,14 @@ Material:
     - _Glossiness: 0.5
     - _GlossyReflections: 1
     - _Height: 0.3
-    - _HeightOffset: 0.44
+    - _HeightOffset: 0.11
     - _LineThickness: 28.6
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _SmoothnessTextureChannel: 0
-    - _Softness: 1.98
+    - _Softness: 5.31
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _Thickness: 0.002

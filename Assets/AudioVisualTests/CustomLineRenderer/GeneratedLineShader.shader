@@ -43,6 +43,7 @@ Shader "Unlit/LineTest"
             float _Thickness;
             float _Height;
             float _HeightOffset;
+            float4x4 _Transform;
 
             v2g vert(uint vertId : SV_VertexID, uint lineId : SV_InstanceID)
             {
@@ -69,6 +70,12 @@ Shader "Unlit/LineTest"
             float3 prevNorm = normalize(prevWorldPos - currentWorldPos);
             float3 nextNorm = normalize(currentWorldPos - nextWorldPos);
             return normalize((prevNorm + nextNorm) * .5);
+          }
+
+          float4 GetFinalPosition(float3 objPos)
+          {
+            float3 transformedPos = mul(_Transform, float4(objPos, 1));
+            return UnityObjectToClipPos(transformedPos);
           }
 
           [maxvertexcount(10)]
@@ -114,43 +121,43 @@ Shader "Unlit/LineTest"
             float3 endUvs = float3(endPoint, lineParam, endSample);
 
             g2f o;
-            o.vertex = UnityObjectToClipPos(startA);
+            o.vertex = GetFinalPosition(startA);
             o.uvs = startUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(endA);
+            o.vertex = GetFinalPosition(endA);
             o.uvs = endUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(startB);
+            o.vertex = GetFinalPosition(startB);
             o.uvs = startUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(endB);
+            o.vertex = GetFinalPosition(endB);
             o.uvs = endUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(startC);
+            o.vertex = GetFinalPosition(startC);
             o.uvs = startUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(endC);
+            o.vertex = GetFinalPosition(endC);
             o.uvs = endUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(startD);
+            o.vertex = GetFinalPosition(startD);
             o.uvs = startUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(endD);
+            o.vertex = GetFinalPosition(endD);
             o.uvs = endUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(startA);
+            o.vertex = GetFinalPosition(startA);
             o.uvs = startUvs;
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(endA);
+            o.vertex = GetFinalPosition(endA);
             o.uvs = endUvs;
             triStream.Append(o);
           }
@@ -193,6 +200,7 @@ Shader "Unlit/LineTest"
             float _Thickness;
             float _Height;
             float _HeightOffset;
+            float4x4 _Transform;
 
             v2g vert(uint vertId : SV_VertexID, uint lineId : SV_InstanceID)
             {
@@ -221,6 +229,12 @@ Shader "Unlit/LineTest"
             return normalize((prevNorm + nextNorm) * .5);
           }
 
+          float4 GetFinalPosition(float3 objPos)
+          {
+            float3 transformedPos = mul(_Transform, float4(objPos, 1));
+            return UnityObjectToClipPos(transformedPos);
+          }
+
           [maxvertexcount(4)]
           void geo(line v2g p[2], inout TriangleStream<g2f> triStream)
           {
@@ -241,19 +255,19 @@ Shader "Unlit/LineTest"
             endBottomPos.y = 0;
 
             g2f o;
-            o.vertex = UnityObjectToClipPos(startWorldPos);
+            o.vertex = GetFinalPosition(startWorldPos);
             o.uvs = float3(startPoint, lineParam, startSample);
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(endWorldPos);
+            o.vertex = GetFinalPosition(endWorldPos);
             o.uvs = float3(endPoint, lineParam, endSample);
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(startBottomPos);
+            o.vertex = GetFinalPosition(startBottomPos);
             o.uvs = float3(startPoint, lineParam, 0);
             triStream.Append(o);
 
-            o.vertex = UnityObjectToClipPos(endBottomPos);
+            o.vertex = GetFinalPosition(endBottomPos);
             o.uvs = float3(endPoint, lineParam, 0);
             triStream.Append(o);
 

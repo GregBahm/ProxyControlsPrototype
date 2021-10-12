@@ -1,4 +1,4 @@
-using System;
+    using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -16,6 +16,7 @@ public class CustomLineRenderer : MonoBehaviour
 
     void Update()
     {
+        Mat.SetMatrix("_Transform", transform.localToWorldMatrix);
         Graphics.DrawProcedural(Mat, BoundsSource.bounds, MeshTopology.LineStrip, LineResolution, LinesCount);
     }
 }

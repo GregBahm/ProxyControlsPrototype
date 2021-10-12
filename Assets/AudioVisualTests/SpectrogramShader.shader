@@ -41,23 +41,25 @@ Shader "Unlit/SpectrogramShader"
             };
 
             sampler2D _MainTex;
+            float4 _MainTex_ST;
             float _Height;
             fixed3 _ColorA;
             fixed3 _ColorB;
             fixed3 _ColorC;
-            fixed3 _ColorD;
+            fixed4 _ColorD;
 
             v2f vert(appdata v)
             {
                 v2f o;
-                fixed val = tex2Dlod(_MainTex, float4(v.uv, 0, 1)).x;
+                float2 transformedUvs = TRANSFORM_TEX(v.uv, _MainTex);
+                fixed val = tex2Dlod(_MainTex, float4(transformedUvs, 0, 1)).x;
                 o.basePos = v.vertex;
                 o.basePos.xz *= .01;
                 v.vertex.y = (v.vertex.y + .5) * val * _Height;
                 o.newPos = v.vertex.xyz;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
                 o.normal = v.normal;
+                o.uv = v.uv;
                 return o;
             }
 
@@ -81,7 +83,7 @@ Shader "Unlit/SpectrogramShader"
                 skirt *= lip;
                 float3 skirtColor = float3(1, 1, 1) * skirt * .5;
                 mainColor += skirtColor;
-                float3 sideColor = mainColor * _ColorD;
+                float3 sideColor = lerp(mainColor, _ColorD.rgb, _ColorD.a);
                 mainColor = lerp(sideColor, mainColor, abs(i.normal.y));
                 return float4(mainColor, lip);
             }
