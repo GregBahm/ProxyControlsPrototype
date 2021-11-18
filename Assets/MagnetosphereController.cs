@@ -8,22 +8,52 @@ public class MagnetosphereController : MonoBehaviour
 {
     public TextAsset LinesDefinition;
     public GameObject LinePrefab;
+    private List<LineRenderer> lines;
+    private float previousScale;
+    private float baseLineScale;
 
     private void Start()
     {
+        baseLineScale = LinePrefab.GetComponent<LineRenderer>().widthMultiplier;
+        lines = new List<LineRenderer>();
         foreach (string line in LinesDefinition.text.Split('\r'))
         {
-            CreateLine(line);
+            lines.Add(CreateLine(line));
         }
     }
 
-    private void CreateLine(string line)
+    private bool GetDidScaleChange()
+    {
+        return Mathf.Abs(previousScale - transform.localScale.x) > Mathf.Epsilon;
+    }
+
+    private float GetEffectiveLineWidth()
+    {
+        return baseLineScale * transform.localScale.x;
+    }
+
+    private void Update()
+    {
+        if(GetDidScaleChange())
+        {
+            foreach (LineRenderer line in lines)
+            {
+                line.widthMultiplier = GetEffectiveLineWidth();
+            }
+        }
+        previousScale = transform.localScale.x;
+    }
+
+    private LineRenderer CreateLine(string line)
     {
         Vector3[] linePoints = GetLinePoints(line).ToArray();
         GameObject newLine = Instantiate(LinePrefab);
-        LineRenderer renderer = newLine.GetComponent<LineRenderer>();
-        renderer.positionCount = linePoints.Length;
-        renderer.SetPositions(linePoints);
+        LineRenderer lineRenderer = newLine.GetComponent<LineRenderer>();
+        lineRenderer.positionCount = linePoints.Length;
+        lineRenderer.SetPositions(linePoints);
+        lineRenderer.widthMultiplier = GetEffectiveLineWidth();
+        newLine.transform.parent = this.transform;
+        return lineRenderer;
     }
 
     private IEnumerable<Vector3> GetLinePoints(string line)
