@@ -70,24 +70,6 @@ Shader "Unlit/OceanverseCurrentsShader"
               return mul(lookMatrix, vertex);
             }
 
-            float GetThickness(float param, uint instanceID)
-            {
-              float strandsParam = (float)instanceID / _TotalStrands;
-
-              float time = _Time.x * 10 + strandsParam * 20;
-              time %= 1;
-              time = time * 2 - 1;
-              //time = 0; // TODO: Delete
-              float strandsAlpha = 1 - saturate(abs(strandsParam - .5 - time) * 2);
-
-              float mainAlpha = 1 - saturate(abs(param - .5 - time) * 2);
-              mainAlpha = pow(mainAlpha, .5);
-              float endAlpha = 1 - saturate(abs(param - .5) * 2);
-              //mainAlpha *= endAlpha;
-              //mainAlpha *= strandsAlpha;
-              return mainAlpha;
-            }
-
             float3 GetStrokeTangent(float3 basePoint, float3 strokeBeginning, float3 strokeEnd, float param)
             {
                 basePoint = float3(basePoint.x, basePoint.y, 0);
@@ -108,7 +90,20 @@ Shader "Unlit/OceanverseCurrentsShader"
                 float3 end = _PlumeStrands[startIndex + ceilParam];
                 float modParam = scaledParam % 1;
 
-                float thickness = GetThickness(param, instanceID);
+                float strandsParam = (float)instanceID / _TotalStrands;
+
+                float time = _Time.x * 5;
+                time %= 1;
+                time = time * 2 - 1;
+                //time = 0;
+
+                float baseThickness = 1 - saturate(abs(param - .5 - time) * 2);
+                baseThickness = pow(baseThickness, .5);
+                float baseTipAlpha = 1 - saturate(abs(param - .5) * 2);
+                float startTipAlpha = pow(baseTipAlpha, 1);
+                float endTipAlpha = pow(baseTipAlpha, .3);
+                float outerAlpha = lerp(startTipAlpha, endTipAlpha, param);
+                float thickness = baseThickness * outerAlpha * param;
 
                 float3 strokeCenter = lerp(beginning, end, modParam);
                 
@@ -125,7 +120,7 @@ Shader "Unlit/OceanverseCurrentsShader"
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 o.vertex = mul(UNITY_MATRIX_VP, worldPos);
-                o.thickness = thickness;
+                o.thickness = baseThickness;
                 o.normal = v.normal;
                 o.lengthVal = param;
                 return o;
@@ -133,8 +128,7 @@ Shader "Unlit/OceanverseCurrentsShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
-              return i.lengthVal;
-              fixed4 lut = tex2D(_Lut, float2(pow(i.lengthVal, .5), 0));
+              fixed4 lut = tex2D(_Lut, float2(pow(i.thickness * i.lengthVal, .5), 0));
               return lut;
                 float3 norm = i.normal * .5 + .5;
                 float3 lerpColor = lerp(float3(3, 1, 1) * .5, float3(.2, .4, 2), pow(i.thickness, .5));

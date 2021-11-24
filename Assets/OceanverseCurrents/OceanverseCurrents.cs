@@ -16,7 +16,8 @@ public class OceanverseCurrents : MonoBehaviour
 
     public float StrandIntensity;
 
-    public int CurrentsCount;
+    public int CurrentDimensionCount;
+    public int CurrentsCount { get { return CurrentDimensionCount * CurrentDimensionCount; } }
 
     private int currentsKernel;
     private ComputeBuffer argsBuffer;
@@ -44,9 +45,16 @@ public class OceanverseCurrents : MonoBehaviour
     {
         ComputeBuffer ret = new ComputeBuffer(CurrentsCount, ROOT_POINTS_STRIDE);
         Vector2[] data = new Vector2[CurrentsCount];
-        for (int i = 0; i < CurrentsCount; i++)
+        int i = 0;
+        for (int x = 0; x < CurrentDimensionCount; x++)
         {
-            data[i] = new Vector2(UnityEngine.Random.value, UnityEngine.Random.value);
+            for (int y = 0; y < CurrentDimensionCount; y++)
+            {
+                float xPos = (float)x / CurrentDimensionCount;
+                float yPos = (float)y / CurrentDimensionCount;
+                data[i] = new Vector2(xPos, yPos);
+                i++;
+            }
         }
         ret.SetData(data);
         return ret;

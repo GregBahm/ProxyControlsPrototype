@@ -4,8 +4,6 @@
 
 float _StrandIntensity;
 float _Time;
-float _Height;
-float3 _MapOffset;
 
 Texture2D<float4> MapTexture;
 SamplerState samplerMapTexture;
@@ -15,14 +13,12 @@ RWStructuredBuffer<float3> _CurrentStrands;
 
 float3 ApplyCurrents(float3 currentPos, float intensity)
 {
-  float3 uvs = currentPos * float3(.4, 1, .4);
+  float3 uvs = currentPos;
 
-  uvs += _MapOffset;
 
-  float2 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs.xy, 0).xy;
-  mapSample = mapSample * 2 - 1;
-  mapSample *= intensity;
-  float3 positionChange = float3(mapSample.x, 0, mapSample.y);
+  float mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs.xy, 0).b;
+  float3 positionChange = lerp(float3(1, 1, 1), float3(-2, 1, -1), mapSample);
+  positionChange *= intensity;
   return currentPos + positionChange;
 }
 
@@ -30,7 +26,7 @@ float3 ApplyCurrents(float3 currentPos, float intensity)
 void CalculateCurrents(uint3 id : SV_DispatchThreadID)
 {
   float2 basePos = _BasePositions[id.x];
-  float3 pos = float3(basePos.x, _Height, basePos.y);
+  float3 pos = float3(basePos.x, 0, basePos.y);
   for (uint i = 0; i < POINTS_PER_STRAND; i++)
   {
     float strandParam = (float)i / POINTS_PER_STRAND;
