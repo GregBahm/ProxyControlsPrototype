@@ -1,14 +1,15 @@
 Shader "Unlit/LineShader"
 {
-    Properties
-    {
-      _StartColor("Start Color", Color) = (1,1,1,1)
-      _EndColor("End Color", Color) = (1,1,1,1)
-      _PulseParam("Pulse Param", Range(0, 1)) = .5
-    }
+  Properties
+  {
+    _StartColor("Start Color", Color) = (1,1,1,1)
+    _EndColor("End Color", Color) = (1,1,1,1)
+    _PulseParam("Pulse Param", Range(0, 1)) = .5
+  }
     SubShader
-    { 
-        Blend SrcAlpha OneMinusSrcAlpha
+  {
+      Blend One One 
+        //Blend SrcAlpha OneMinusSrcAlpha
         Tags { "RenderType"="Transparent" }
         LOD 100
 
@@ -56,6 +57,7 @@ Shader "Unlit/LineShader"
               toPulse = abs(toPulse - .5) * 2;
               toPulse -= .5;
               toPulse *= .4;
+              return col * toPulse * 5;
               col += saturate(toPulse);
               return col;
             }

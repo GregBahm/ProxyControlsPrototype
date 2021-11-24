@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: OrcaHeightMat
+  m_Name: OrcaHeightMatHigh
   m_Shader: {fileID: 4800000, guid: c45c314d76b81e7468a2d890df2c1c98, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
@@ -63,7 +63,7 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _HeightPoint: 0.51
+    - _HeightPoint: 0.78
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
