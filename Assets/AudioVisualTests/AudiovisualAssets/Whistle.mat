@@ -68,6 +68,7 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
+    - _PlayMode: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SphereSize: 0.2
@@ -75,10 +76,12 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
+    - _BubbleBottomColor: {r: 0, g: 0, b: 0, a: 1}
+    - _BubbleTopColor: {r: 0, g: 0.14870298, b: 0.4245283, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _ColorA: {r: 1, g: 1, b: 1, a: 1}
-    - _ColorB: {r: 0, g: 0.7255683, b: 1, a: 1}
-    - _ColorC: {r: 1, g: 0, b: 0.25906134, a: 1}
-    - _ColorD: {r: 0, g: 0.65773153, b: 1, a: 1}
+    - _ColorA: {r: 0.9333334, g: 0.91372555, b: 0.17254902, a: 1}
+    - _ColorB: {r: 0.043137256, g: 1, b: 0.70980394, a: 1}
+    - _ColorC: {r: 0.13333334, g: 0.003921569, b: 0.8470589, a: 1}
+    - _ColorD: {r: 0.9725491, g: 0.95294124, b: 0.03529412, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
