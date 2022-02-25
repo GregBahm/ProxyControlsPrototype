@@ -2,6 +2,7 @@ Shader "Unlit/PancakeGlacierHeightmap"
 {
     Properties
     {
+        _Zoom("Zoom", Range(0, 1)) = 1
         _MainTex("Texture (R shade G height)", 2D) = "white" {}
         _Lut("Lut", 2D) = "white" {}
         _TopHigh("Top High", Color) = (1,1,1,1)
@@ -19,6 +20,8 @@ Shader "Unlit/PancakeGlacierHeightmap"
         _HalfMinorContourLinePixelSize("_HalfMinorContourLinePixelSize", Float) = 1
         _NumMinorContourIntervalSections("_NumMinorContourIntervalSections", Float) = 1
         _MinorContourLineIntervalInMeters("_MinorContourLineIntervalInMeters", Float) = 1
+        _OrbSize("Orb Size", Float) = 1
+        _OrbColor("Color", Color) = (1,1,1,1)
     }
     SubShader
     {
@@ -47,7 +50,8 @@ Shader "Unlit/PancakeGlacierHeightmap"
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
                 float3 normal : NORMAL;
-                float3 height : TEXCOORD1;
+                float height : TEXCOORD1;
+                float3 worldPosition : TEXCOORD2;
 
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -69,6 +73,11 @@ Shader "Unlit/PancakeGlacierHeightmap"
             float _HalfMinorContourLinePixelSize;
             float _NumMinorContourIntervalSections;
             float _MinorContourLineIntervalInMeters;
+            
+            float _Zoom;
+            float3 _OrbPosition;
+            float _OrbSize;
+            fixed4 _OrbColor;
 
             fixed4 ApplyContourLines(fixed4 color, float elevation /* in meters */)
             {
@@ -105,14 +114,34 @@ Shader "Unlit/PancakeGlacierHeightmap"
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
+                float effectiveZoom = lerp(.2, 1, _Zoom);
+                v.uv -= .5;
+                v.uv *= effectiveZoom;
+                v.uv += .5;
+
                 v.uv.y = 1 - (1 - v.uv.y) * _Synch;
-                float height = tex2Dlod(_MainTex, float4(v.uv, 0, 3)).g * v.vertex.y;
+                float rawHeight = tex2Dlod(_MainTex, float4(v.uv, 0, 3)).g;
+                float height = rawHeight * v.vertex.y;
                 v.vertex.y = height;
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
                 o.normal = v.normal;
                 o.height = v.vertex.y;
+                o.worldPosition = mul(unity_ObjectToWorld, v.vertex).xyz;
                 return o;
+            }
+
+            float GetOrb(float3 worldPos)
+            {
+                float distToOrb = length(worldPos - _OrbPosition);
+                float alpha = 1 - distToOrb;
+                alpha += _OrbSize;
+                alpha = pow(saturate(alpha), 20);
+                float innerAlpha = saturate(distToOrb / _OrbSize);
+                innerAlpha = 1 - pow(innerAlpha, 20);
+                innerAlpha *= .6;
+                alpha -= innerAlpha;
+                return alpha;
             }
 
             fixed4 frag (v2f i) : SV_Target
@@ -128,7 +157,10 @@ Shader "Unlit/PancakeGlacierHeightmap"
                 top *= shade;
                 float3 side = lerp(_SideLow, _SideHigh, i.height * 100);
                 float3 col = lerp(side, top, isSide);
-                col.xyz = ApplyContourLines(float4(col, 1), i.height * 10000).xyz;
+                col = ApplyContourLines(float4(col, 1), i.height * 10000).xyz;
+                col *= saturate(i.height * 1000);
+                float orb = GetOrb(i.worldPosition);
+                col = lerp(col, _OrbColor.xyz, orb * _OrbColor.a);
                 return fixed4(col * _Tint, 1);
             }
             ENDCG

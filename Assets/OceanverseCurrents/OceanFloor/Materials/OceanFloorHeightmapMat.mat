@@ -74,10 +74,11 @@ Material:
     - _HalfMajorContourLinePixelSize: -17.57
     - _HalfMinorContourLinePixelSize: 0.5
     - _Metallic: 0
-    - _MinorContourLineIntervalInMeters: -14.6
+    - _MinorContourLineIntervalInMeters: -12.38
     - _Mode: 0
-    - _NumMinorContourIntervalSections: 2
+    - _NumMinorContourIntervalSections: 5.3
     - _OcclusionStrength: 1
+    - _OrbSize: 0.13
     - _Parallax: 0.02
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
@@ -85,13 +86,15 @@ Material:
     - _Synch: 0.94
     - _UVSec: 0
     - _ZWrite: 1
+    - _Zoom: 1
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _MajorContourLineColor: {r: 0, g: 0.51187396, b: 0.6226415, a: 1}
-    - _MinorContourLineColor: {r: 0, g: 0.5283339, b: 0.7169812, a: 1}
+    - _MajorContourLineColor: {r: 0.8207547, g: 0.8207547, b: 0.8207547, a: 1}
+    - _MinorContourLineColor: {r: 0.21622464, g: 0.32809538, b: 0.4056604, a: 0.4745098}
+    - _OrbColor: {r: 0.60200423, g: 0.3411765, b: 0.99215686, a: 0.6392157}
     - _SideHigh: {r: 0.011614433, g: 0.58734876, b: 0.8207547, a: 1}
-    - _SideLow: {r: 0.254717, g: 0.254717, b: 0.254717, a: 1}
+    - _SideLow: {r: 0, g: 0, b: 0, a: 1}
     - _Tint: {r: 1, g: 1, b: 1, a: 1}
     - _TopHigh: {r: 0.13333334, g: 0.50980395, b: 0.6392157, a: 1}
     - _TopLow: {r: 0.098039225, g: 0.098039225, b: 0.18039216, a: 1}
