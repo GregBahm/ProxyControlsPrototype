@@ -1,24 +1,26 @@
-Shader "Unlit/MarkerSelectionOrb"
+Shader "Unlit/MarkerHighlightOuter"
 {
     Properties
     {
-      _AboveWaterColor("Above Color", Color) = (1,1,1,1)
-      _BelowWaterColor("Below Color", Color) = (1,1,1,1)
+      _HighColor("High Color", Color) = (1,1,1,1)
+      _LowColor("High Color", Color) = (1,1,1,1)
     }
     SubShader
     {
-        Tags { "Queue" = "Transparent" }
+        Tags { "RenderType"="Opaque" }
+        LOD 100
 
-        Blend SrcAlpha OneMinusSrcAlpha
-        ZWrite Off
-        Cull Front
         Pass
         {
+            Cull Front
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+
+            fixed4 _HighColor;
+            fixed4 _LowColor;
 
             struct appdata
             {
@@ -33,21 +35,15 @@ Shader "Unlit/MarkerSelectionOrb"
                 float4 vertex : SV_POSITION;
                 float3 worldPosition : TEXCOORD1;
                 float3 worldNormal : TEXCOORD2;
-                float3 objPos : TEXCOOORD3;
             };
-
-            fixed4 _AboveWaterColor;
-            fixed4 _BelowWaterColor;
-            float _OrbFade;
 
             v2f vert (appdata v)
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
                 o.worldPosition = mul(unity_ObjectToWorld, v.vertex).xyz;
                 o.worldNormal = mul(unity_ObjectToWorld, -v.normal);
-                o.objPos = v.vertex;
+                o.uv = v.uv;
                 return o;
             }
 
@@ -56,18 +52,9 @@ Shader "Unlit/MarkerSelectionOrb"
               half3 viewDirection = normalize(UnityWorldSpaceViewDir(i.worldPosition));
               half3 normal = normalize(i.worldNormal);
               half theDot = dot(normal, viewDirection);
-              float orbAlpha = 1 - theDot;
-              orbAlpha = pow(orbAlpha, 1);
-              float4 col = i.worldPosition.y < 0 ? _BelowWaterColor : _AboveWaterColor;
-
-              float2 edgeDists = abs(i.worldPosition.xz);
-              float maxEdge = max(edgeDists.x, edgeDists.y);
-              bool shouldClip = maxEdge < 1;
-              clip(shouldClip - .5);
-
-              float outerFade = pow(1 - theDot, 2);
-              orbAlpha *= 1 - saturate(outerFade);
-              return fixed4(col.xyz * 2, orbAlpha * col.a);// *_OrbFade);
+              float edgeShade = 1 - pow(1 - theDot, 4);
+              float key = i.uv.y;
+              return lerp(_LowColor, _HighColor, key) * edgeShade;
             }
             ENDCG
         }

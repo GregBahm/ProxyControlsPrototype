@@ -42,6 +42,7 @@ Shader "Unlit/WaterPlaneShader"
             fixed4 _EdgeSideColor;
             float3 _OrbPosition; 
             float _OrbSize;
+            float _OrbFade;
 
             v2f vert (appdata v)
             {
@@ -57,13 +58,14 @@ Shader "Unlit/WaterPlaneShader"
             {
               float distToOrb = length(i.worldPosition - _OrbPosition);
               float alpha = 1 - distToOrb;
+              alpha *= _OrbFade;
               alpha += _OrbSize;
               alpha = pow(saturate(alpha), 20);
               float innerAlpha = saturate(distToOrb / _OrbSize);
               innerAlpha = 1 - pow(innerAlpha, 20);
               innerAlpha *= .6;
               alpha -= innerAlpha;
-              fixed4 finalGlow = fixed4(_Color.xyz, alpha * _Color.a);
+              fixed4 finalGlow = saturate(fixed4(_Color.xyz, alpha * _Color.a));
 
               float2 distToEdges = abs(i.uv - .5) * 2;
               float distToEdge = max(distToEdges.x, distToEdges.y);
@@ -73,7 +75,7 @@ Shader "Unlit/WaterPlaneShader"
               float sideAlpha = 1 - i.uv.z;
               sideAlpha = pow(sideAlpha, 10);
               ret.a *= sideAlpha;
-              ret.a -= innerAlpha;
+              ret.a -= innerAlpha * _OrbFade;
               return ret;
             }
             ENDCG

@@ -5,6 +5,12 @@ using UnityEngine;
 
 public class MarkersTestScript : MonoBehaviour
 {
+    public Transform StartPoint;
+    [Range(0, 1)]
+    public float Transition;
+
+    public Transform ScaleStuff;
+
     public Transform MarkerPosition;
     public Transform TopContent;
 
@@ -16,9 +22,17 @@ public class MarkersTestScript : MonoBehaviour
 
     private void Update()
     {
+        UpdateMarkerPosition();
         Shader.SetGlobalVector("_OrbPosition", MarkerPosition.position);
         PlaceTopContent();
         PlacePips();
+    }
+
+    private void UpdateMarkerPosition()
+    {
+        ScaleStuff.localScale = new Vector3(Transition, Transition, Transition);
+        Shader.SetGlobalFloat("_OrbFade", Transition);
+        //MarkerPosition.position = StartPoint.position * Transition;
     }
 
     private void PlaceTopContent()
