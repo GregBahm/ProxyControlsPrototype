@@ -16,7 +16,7 @@ MonoBehaviour:
   m_AutomaticLoading: 0
   m_AutomaticRunning: 0
   m_Loaders:
-  - {fileID: 11400000, guid: 6f96ae5009756a34887fb68237470b98, type: 2}
+  - {fileID: 11400000, guid: a9a68b899e1030949ba5e17c2fab9cf5, type: 2}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49,7 +49,7 @@ MonoBehaviour:
   m_AutomaticLoading: 0
   m_AutomaticRunning: 0
   m_Loaders:
-  - {fileID: 11400000, guid: 6f96ae5009756a34887fb68237470b98, type: 2}
+  - {fileID: 11400000, guid: da179b531068be24e88caacb5edc947b, type: 2}
 --- !u!114 &3945446714082280043
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -77,4 +77,4 @@ MonoBehaviour:
   m_Name: WSA Settings
   m_EditorClassIdentifier: 
   m_LoaderManagerInstance: {fileID: -6071362849341927703}
-  m_InitManagerOnStart: 1
+  m_InitManagerOnStart: 0

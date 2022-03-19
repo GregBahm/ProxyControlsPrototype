@@ -25,6 +25,7 @@ Shader "Unlit/MarkerSelectionOrb"
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f
@@ -34,15 +35,22 @@ Shader "Unlit/MarkerSelectionOrb"
                 float3 worldPosition : TEXCOORD1;
                 float3 worldNormal : TEXCOORD2;
                 float3 objPos : TEXCOOORD3;
+                UNITY_VERTEX_OUTPUT_STEREO
             };
 
             fixed4 _AboveWaterColor;
             fixed4 _BelowWaterColor;
+            float _WaterLevel;
             float _OrbFade;
 
             v2f vert (appdata v)
             {
                 v2f o;
+
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_INITIALIZE_OUTPUT(v2f, o);
+                UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
                 o.worldPosition = mul(unity_ObjectToWorld, v.vertex).xyz;
@@ -58,12 +66,12 @@ Shader "Unlit/MarkerSelectionOrb"
               half theDot = dot(normal, viewDirection);
               float orbAlpha = 1 - theDot;
               orbAlpha = pow(orbAlpha, 1);
-              float4 col = i.worldPosition.y < 0 ? _BelowWaterColor : _AboveWaterColor;
+              float4 col = i.worldPosition.y < _WaterLevel ? _BelowWaterColor : _AboveWaterColor;
 
               float2 edgeDists = abs(i.worldPosition.xz);
               float maxEdge = max(edgeDists.x, edgeDists.y);
-              bool shouldClip = maxEdge < 1;
-              clip(shouldClip - .5);
+              //bool shouldClip = maxEdge < 1;
+              //clip(shouldClip - .5);
 
               float outerFade = pow(1 - theDot, 2);
               orbAlpha *= 1 - saturate(outerFade);
