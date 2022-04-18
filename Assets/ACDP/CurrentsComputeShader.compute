@@ -1,0 +1,55 @@
+﻿#pragma kernel UpdateParticles
+
+struct ParticleComputeData
+{
+	float2 currentPosition;
+	float2 previousPosition;
+	float time;
+};
+
+float3 baseCurrentForce;
+ 
+float particleLifetime;
+float particleSpeed;
+float deltaTime;
+
+Texture3D MapTexture;
+
+SamplerState samplerMapTexture;
+
+RWStructuredBuffer<float3> originalPositions;
+RWStructuredBuffer<ParticleComputeData> particleComputeData;
+
+
+[numthreads(128,1,1)]
+void UpdateParticles(uint3 id : SV_DispatchThreadID)
+{
+	float3 originalPosition = originalPositions[id.x];
+	ParticleComputeData computeData = particleComputeData[id.x];
+	float3 currentPosition = float3(computeData.currentPosition.x, originalPosition.y, computeData.currentPosition.y);
+
+	float time = computeData.time + deltaTime;
+
+	computeData.time = time % particleLifetime;
+	if (time < particleLifetime)
+	{
+		float3 uvs = currentPosition;
+
+		float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs, 0);
+		mapSample = mapSample * 2 - 1;
+		float2 offset = float2(mapSample.y, mapSample.z);
+		offset += baseCurrentForce.xz;
+		offset *= deltaTime * particleSpeed;
+		float2 newPos = currentPosition.xz + offset;
+
+		computeData.previousPosition = computeData.currentPosition;
+		computeData.currentPosition = newPos;
+	}
+	else
+	{
+		computeData.previousPosition = originalPosition.xz - baseCurrentForce.xz;
+		computeData.currentPosition = originalPosition.xz;
+	}
+	
+	particleComputeData[id.x] = computeData;
+}
