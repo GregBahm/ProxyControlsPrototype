@@ -20,6 +20,11 @@ SamplerState samplerMapTexture;
 RWStructuredBuffer<float3> originalPositions;
 RWStructuredBuffer<ParticleComputeData> particleComputeData;
 
+float depthMode;
+float poleMode;
+float depthToShow;
+float polePosX;
+float polePosZ;
 
 [numthreads(128,1,1)]
 void UpdateParticles(uint3 id : SV_DispatchThreadID)
@@ -28,6 +33,17 @@ void UpdateParticles(uint3 id : SV_DispatchThreadID)
 	ParticleComputeData computeData = particleComputeData[id.x];
 	float3 currentPosition = float3(computeData.currentPosition.x, originalPosition.y, computeData.currentPosition.y);
 
+	if (depthMode)
+	{
+		originalPosition.y = depthToShow;
+		currentPosition.y = depthToShow;
+	}
+	if (poleMode)
+	{
+		originalPosition.x = polePosX;
+		originalPosition.z = polePosZ;
+	}
+
 	float time = computeData.time + deltaTime;
 
 	computeData.time = time % particleLifetime;
@@ -35,15 +51,16 @@ void UpdateParticles(uint3 id : SV_DispatchThreadID)
 	{
 		float3 uvs = currentPosition;
 
-		float3 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs, 0);
+		float4 mapSample = MapTexture.SampleLevel(samplerMapTexture, uvs, 0);
 		mapSample = mapSample * 2 - 1;
 		float2 offset = float2(mapSample.y, mapSample.z);
 		offset += baseCurrentForce.xz;
 		offset *= deltaTime * particleSpeed;
-		float2 newPos = currentPosition.xz + offset;
+		float2 newPos = currentPosition.xz - offset;
 
+		float2 modNewPos = newPos % 1;
 		computeData.previousPosition = computeData.currentPosition;
-		computeData.currentPosition = newPos;
+		computeData.currentPosition = modNewPos;
 	}
 	else
 	{

@@ -30,6 +30,18 @@ public class CurrentSimulator : MonoBehaviour
     [SerializeField]
     private float particleSpeed = .1f;
 
+    [Range(0, 1)]
+    [SerializeField]
+    private float depthToShow;
+
+    [SerializeField]
+    private VisualizationMode mode;
+    [Range(0, 1)]
+    [SerializeField]
+    private float polePosX;
+    [Range(0, 1)]
+    [SerializeField]
+    private float polePosZ;
 
     private Bounds bounds;
 
@@ -52,6 +64,13 @@ public class CurrentSimulator : MonoBehaviour
         public Vector2 previousPosition;
         public float time;
     };
+
+    public enum VisualizationMode
+    {
+        DepthMode,
+        PoleMode,
+        CubeMode
+    }
 
     void Start()
     {
@@ -124,6 +143,10 @@ public class CurrentSimulator : MonoBehaviour
         particleMaterial.SetBuffer("particleComputeData", particleComputeData);
         particleMaterial.SetFloat("particleSize", ParticleSize);
         particleMaterial.SetFloat("particleLifetime", particleLifetime);
+
+        particleMaterial.SetFloat("depthMode", mode == VisualizationMode.DepthMode ? 1 : 0);
+        particleMaterial.SetFloat("depthToShow", depthToShow);
+
         particleMaterial.SetPass(0);
         Graphics.DrawMeshInstancedIndirect(arrowMesh, 0, particleMaterial, bounds, indirectArgs);
     }
@@ -137,6 +160,12 @@ public class CurrentSimulator : MonoBehaviour
         particleUpdater.SetFloat("particleLifetime", particleLifetime);
         particleUpdater.SetFloat("particleSpeed", particleSpeed);
         particleUpdater.SetVector("baseCurrentForce", baseCurrentForce);
+
+        particleUpdater.SetFloat("depthMode", mode == VisualizationMode.DepthMode ? 1 : 0);
+        particleUpdater.SetFloat("depthToShow", depthToShow);
+        particleUpdater.SetFloat("poleMode", mode == VisualizationMode.PoleMode ? 1 : 0);
+        particleUpdater.SetFloat("polePosX", polePosX);
+        particleUpdater.SetFloat("polePosZ", polePosZ);
 
         int numberofGroups = Mathf.CeilToInt((float)particleCount / GroupSize);
         particleUpdater.Dispatch(updateParticlesKernel, numberofGroups, 1, 1);
